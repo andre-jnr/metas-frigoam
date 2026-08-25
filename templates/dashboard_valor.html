@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Dashboard por Valor{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block page_title %}Dashboard de Metas por Valor{% endblock %}
+{% block page_subtitle %}
+<p class="last-update" id="last-update-text">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    <span>Carregando...</span>
+</p>
+{% endblock %}
+
+{% block topbar_actions %}
+<div class="filter-bar">
+    <div class="period-picker">
+        <select id="filtro-mes" class="select-field"></select>
+        <select id="filtro-ano" class="select-field"></select>
+    </div>
+    <select id="auto-refresh-select" class="select-field" title="Atualização automática">
+        <option value="0">Auto: desativada</option>
+        <option value="60000">Auto: 1 min</option>
+        <option value="300000">Auto: 5 min</option>
+        <option value="600000">Auto: 10 min</option>
+        <option value="1800000">Auto: 30 min</option>
+    </select>
+    <button class="btn btn-primary" id="btn-atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        Atualizar
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="summary-grid" id="summary-grid">
+    <!-- preenchido via JS -->
+</div>
+
+<div class="setores-grid" id="setores-grid">
+    <!-- preenchido via JS -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.DM_CONFIG = { anoAtual: {{ ano_atual }}, mesAtual: {{ mes_atual }}, modo: "valor" };</script>
+<script src="{{ url_for('static', filename='js/gauge.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

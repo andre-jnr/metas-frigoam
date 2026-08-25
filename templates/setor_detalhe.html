@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ setor.nome }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">{% endblock %}
+{% block page_title %}
+<a href="{{ url_for('dashboard.index') }}" style="color:var(--text-muted); font-weight:600;">Dashboard</a>
+<span style="color:var(--text-muted); margin:0 6px;">/</span>{{ setor.nome }}
+{% endblock %}
+{% block page_subtitle %}<p>{{ setor.descricao or "Detalhamento de vendas e metas" }}</p>{% endblock %}
+
+{% block topbar_actions %}
+<div class="filter-bar">
+    <div class="period-picker">
+        <select id="filtro-mes" class="select-field"></select>
+        <select id="filtro-ano" class="select-field"></select>
+    </div>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-ghost">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Voltar
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="detail-hero">
+    <div class="surface-card" style="display:flex; align-items:center; justify-content:center; padding:20px;">
+        <div id="gauge-container"></div>
+    </div>
+    <div class="surface-card detail-hero-metrics" id="hero-metrics">
+        <div class="skeleton skeleton-line"></div>
+    </div>
+</div>
+
+<div class="surface-card chart-card">
+    <h3>Evolução das vendas</h3>
+    <p class="chart-subtitle">Venda acumulada x Meta acumulada ao longo do mês</p>
+    <div class="chart-canvas-wrap money-value"><canvas id="evolucao-chart"></canvas></div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px;" class="detail-grid">
+    <div class="surface-card chart-card">
+        <h3>Grupos do setor</h3>
+        <p class="chart-subtitle">Ranking de faturamento por grupo de produto</p>
+        <div class="ranking-list" id="ranking-list"></div>
+    </div>
+    <div>
+        <h3 style="margin:0 0 12px;font-size:14.5px;">Comparações</h3>
+        <div class="compare-grid" id="compare-grid"></div>
+    </div>
+</div>
+
+<div class="surface-card chart-card" style="margin-top:20px;">
+    <div class="flex-between" style="flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+        <div>
+            <h3 style="margin:0;">Detalhamento de Vendas e Metas por Produto</h3>
+            <p class="chart-subtitle" id="produtos-periodo-info" style="margin-bottom:0;">Carregando períodos...</p>
+        </div>
+        <button type="button" class="btn btn-sm btn-ghost" id="produtos-exportar-btn" title="Exportar para Excel (.csv)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar
+        </button>
+    </div>
+    <div class="flex gap-8" style="flex-wrap:wrap; align-items:center; margin-bottom:14px;">
+        <div class="flex gap-8">
+            <button type="button" class="btn btn-sm produtos-view-btn" data-view="grupo">Por Grupo</button>
+            <button type="button" class="btn btn-sm produtos-view-btn" data-view="flat">Todos os Produtos</button>
+        </div>
+        <div class="flex gap-8">
+            <button type="button" class="btn btn-sm produtos-metrica-btn" data-metrica="valor">Valor</button>
+            <button type="button" class="btn btn-sm produtos-metrica-btn" data-metrica="quantidade">Quantidade</button>
+        </div>
+        <select id="produtos-tipo-comparacao" class="select-field">
+            <option value="MESMO_MES_ANO_ANTERIOR">Comparar: Ano anterior</option>
+            <option value="MES_ANTERIOR">Comparar: Mês anterior</option>
+        </select>
+    </div>
+    <div class="data-table-wrap">
+        <table class="data-table" id="produtos-table">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="codigo" style="width:70px;">Cód. <span class="sort-arrow"></span></th>
+                    <th class="sortable" data-sort="nome">Produto <span class="sort-arrow"></span></th>
+                    <th class="sortable" data-sort="venda_comparativa" id="th-comparativa" style="text-align:right;">Venda Comparativa <span class="sort-arrow"></span></th>
+                    <th class="sortable" data-sort="venda_atual" id="th-atual" style="text-align:right;">Venda Atual <span class="sort-arrow"></span></th>
+                    <th class="sortable" data-sort="variacao_valor" id="th-variacao" style="text-align:right;">Variação (R$) <span class="sort-arrow"></span></th>
+                    <th class="sortable" data-sort="variacao_percentual" style="text-align:right;">Variação (%) <span class="sort-arrow"></span></th>
+                </tr>
+            </thead>
+            <tbody id="produtos-tbody">
+                <tr><td colspan="6"><div class="skeleton skeleton-line" style="margin:8px 0;"></div></td></tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="flex-between" id="produtos-paginacao" style="padding:14px 4px 0; display:none;">
+        <span class="text-muted" id="produtos-paginacao-info" style="font-size:12px;"></span>
+        <div class="flex gap-8">
+            <button class="btn btn-sm btn-ghost" id="produtos-pag-anterior">Anterior</button>
+            <button class="btn btn-sm btn-ghost" id="produtos-pag-proxima">Próxima</button>
+        </div>
+    </div>
+</div>
+
+<style>
+@media (max-width: 1100px) { .detail-grid { grid-template-columns: 1fr !important; } }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.DM_CONFIG = { anoAtual: {{ ano_atual }}, mesAtual: {{ mes_atual }}, setorId: {{ setor.id }} };</script>
+<script src="{{ url_for('static', filename='js/gauge.js') }}"></script>
+<script src="{{ url_for('static', filename='js/vendor/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/setor_detalhe.js') }}"></script>
+<script src="{{ url_for('static', filename='js/produtos_setor.js') }}"></script>
+{% endblock %}

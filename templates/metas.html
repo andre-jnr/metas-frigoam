@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Metas{% endblock %}
+{% block page_title %}Metas{% endblock %}
+{% block page_subtitle %}<p>Cadastro de metas mensais por setor</p>{% endblock %}
+
+{% block topbar_actions %}
+<div class="filter-bar">
+    <select id="filtro-setor" class="select-field"><option value="">Todos os setores</option></select>
+    <div class="period-picker">
+        <select id="filtro-mes" class="select-field"></select>
+        <select id="filtro-ano" class="select-field"></select>
+    </div>
+    <button class="btn btn-primary" id="btn-nova-meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Nova Meta
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Setor</th>
+                <th>Período</th>
+                <th>Tipo</th>
+                <th>Base</th>
+                <th>Meta</th>
+                <th>Valor calculado</th>
+                <th>Status</th>
+                <th style="text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="metas-tbody"></tbody>
+    </table>
+</div>
+
+<!-- Modal de criação/edição -->
+<div class="modal-overlay" id="meta-modal">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-header">
+            <h2 id="meta-modal-title">Nova Meta</h2>
+            <button class="btn btn-icon btn-ghost" id="meta-modal-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="meta-id">
+            <div class="field-group">
+                <label>Setor</label>
+                <select class="select-field" id="meta-setor"></select>
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label>Mês</label>
+                    <select class="select-field" id="meta-mes"></select>
+                </div>
+                <div class="field-group">
+                    <label>Ano</label>
+                    <select class="select-field" id="meta-ano"></select>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label>Tipo de meta</label>
+                <div class="flex gap-8">
+                    <button type="button" class="btn btn-sm tipo-meta-btn" data-tipo="VALOR_FIXO">Valor fixo</button>
+                    <button type="button" class="btn btn-sm tipo-meta-btn" data-tipo="PERCENTUAL">Percentual</button>
+                </div>
+            </div>
+
+            <div id="bloco-valor-fixo" style="display:none;">
+                <div class="field-group">
+                    <label>Valor da meta (R$)</label>
+                    <input type="number" class="input-field" id="meta-valor" min="0" step="0.01" placeholder="500000.00">
+                </div>
+            </div>
+
+            <div id="bloco-percentual" style="display:none;">
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>Crescimento desejado (%)</label>
+                        <input type="number" class="input-field" id="meta-percentual" step="0.1" placeholder="10">
+                    </div>
+                    <div class="field-group">
+                        <label>Base de comparação</label>
+                        <select class="select-field" id="meta-base">
+                            <option value="MESMO_MES_ANO_ANTERIOR">Mesmo mês do ano anterior</option>
+                            <option value="MES_ANTERIOR">Mês anterior</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="surface-card" id="preview-box" style="padding:14px 16px; margin-bottom:16px; font-size:12.5px;">
+                    <div class="text-muted">Calculando meta automaticamente...</div>
+                </div>
+                <label class="checkbox-item" id="confirmar-zero-wrap" style="display:none; border:1px solid var(--warning); border-radius:var(--radius-sm); margin-bottom:16px;">
+                    <input type="checkbox" id="meta-confirmar-zero">
+                    <span>Não há vendas no período de comparação. Usar R$ 0,00 como base mesmo assim.</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="meta-modal-cancel">Cancelar</button>
+            <button class="btn btn-primary" id="meta-modal-save">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header"><h2>Confirmar exclusão</h2></div>
+        <div class="modal-body"><p id="confirm-modal-text" class="mt-0">Tem certeza que deseja excluir esta meta?</p></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="confirm-modal-cancel">Cancelar</button>
+            <button class="btn btn-danger" id="confirm-modal-ok">Excluir</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>window.DM_CONFIG = { anoAtual: {{ ano_atual }}, mesAtual: {{ mes_atual }} };</script>
+<script src="{{ url_for('static', filename='js/metas.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Setores{% endblock %}
+{% block page_title %}Setores{% endblock %}
+{% block page_subtitle %}<p>Cadastro de setores e associação de grupos de produto</p>{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" id="btn-novo-setor">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    Novo Setor
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Setor</th>
+                <th>Grupos</th>
+                <th>Filtro</th>
+                <th>Status</th>
+                <th>Ordem</th>
+                <th style="text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="setores-tbody"></tbody>
+    </table>
+    <div id="setores-empty" style="display:none;"></div>
+</div>
+
+<!-- Modal de criação/edição -->
+<div class="modal-overlay" id="setor-modal">
+    <div class="modal-box" style="max-width:640px;">
+        <div class="modal-header">
+            <h2 id="setor-modal-title">Novo Setor</h2>
+            <button class="btn btn-icon btn-ghost" id="setor-modal-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="setor-id">
+            <div class="field-row">
+                <div class="field-group" style="flex:2">
+                    <label>Nome do setor</label>
+                    <input type="text" class="input-field" id="setor-nome" placeholder="Ex: Açougue" maxlength="100">
+                </div>
+                <div class="field-group" style="flex:1">
+                    <label>Ordem de exibição</label>
+                    <input type="number" class="input-field" id="setor-ordem" value="0" min="0">
+                </div>
+            </div>
+            <div class="field-group">
+                <label>Descrição (opcional)</label>
+                <textarea class="textarea-field" id="setor-descricao" rows="2" placeholder="Breve descrição do setor"></textarea>
+            </div>
+
+            <div class="flex-between" style="margin-bottom:6px;">
+                <label style="font-size:12.5px; font-weight:600; color:var(--text-secondary);">Grupos de produto associados <span id="grupos-count-label" class="text-muted"></span></label>
+                <div class="flex gap-8">
+                    <button type="button" class="btn btn-sm btn-ghost" id="btn-selecionar-todos-grupos">Selecionar todos</button>
+                    <button type="button" class="btn btn-sm btn-ghost" id="btn-limpar-grupos">Limpar</button>
+                </div>
+            </div>
+            <div class="field-group">
+                <input type="text" class="input-field" id="grupos-search" placeholder="Buscar grupo...">
+            </div>
+            <div class="field-group" id="grupos-chips-wrap" style="flex-direction:row; flex-wrap:wrap; gap:6px; display:none;"></div>
+            <div class="checkbox-list" id="grupos-checkbox-list"></div>
+            <p class="field-hint" style="margin-top:8px;">
+                Deixe sem nenhum grupo selecionado se este setor deve considerar <strong>todos os produtos</strong>
+                e ser definido apenas pelo filtro de PDV abaixo (ex: Delivery). Grupos com subgrupos cadastrados
+                podem ser expandidos: ao marcar o grupo, todos os subgrupos entram junto (inclusive
+                <em>"Sem subgrupo"</em>, quando existir); desmarcar um subgrupo desmarca o grupo e mantém só os
+                subgrupos restantes selecionados.
+            </p>
+
+            <div style="border-top:1px solid var(--border-soft); margin:18px 0 16px;"></div>
+            <label style="font-size:12.5px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:10px;">
+                Filtro adicional por PDV (opcional)
+            </label>
+            <div class="field-row">
+                <div class="field-group">
+                    <label>Restringir a estes PDVs</label>
+                    <input type="text" class="input-field" id="setor-pdv-incluidos" placeholder="Ex: 6">
+                    <span class="field-hint">Só conta vendas destes PDVs. Separe vários por vírgula.</span>
+                </div>
+                <div class="field-group">
+                    <label>Excluir estes PDVs</label>
+                    <input type="text" class="input-field" id="setor-pdv-excluidos" placeholder="Ex: 6">
+                    <span class="field-hint">Ignora vendas destes PDVs. Separe vários por vírgula.</span>
+                </div>
+            </div>
+            <div class="field-group">
+                <label>Excluir dias da semana</label>
+                <div class="flex gap-8" id="dias-semana-chips" style="flex-wrap:wrap;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="setor-modal-cancel">Cancelar</button>
+            <button class="btn btn-primary" id="setor-modal-save">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header"><h2>Confirmar exclusão</h2></div>
+        <div class="modal-body"><p id="confirm-modal-text" class="mt-0">Tem certeza que deseja excluir este setor?</p></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="confirm-modal-cancel">Cancelar</button>
+            <button class="btn btn-danger" id="confirm-modal-ok">Excluir</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/setores.js') }}"></script>
+{% endblock %}

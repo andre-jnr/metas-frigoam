@@ -15,8 +15,8 @@ funcionar (Chart.js está vendorizado localmente).
 ### Pré-requisitos
 
 1. **Python 3.11+** instalado e no PATH ([python.org](https://www.python.org/downloads/)).
-2. **ODBC Driver 17 (ou 18) para SQL Server** instalado no Windows.
-   Baixe em: https://learn.microsoft.com/sql/connect/odbc/download-odbc-driver-for-sql-server
+2. Não é preciso instalar o ODBC Driver: a conexão usa o `mssql-python`, driver oficial
+   da Microsoft que já vem com tudo.
 3. Acesso de rede ao servidor SQL Server (`server_pn`, banco `sismoura`).
 
 ### Passo a passo
@@ -36,12 +36,12 @@ funcionar (Chart.js está vendorizado localmente).
 Dê dois cliques em **`scripts\iniciar.bat`**. O script:
 
 1. ativa o ambiente virtual;
-2. inicia o servidor Flask na porta configurada em `FLASK_PORT` (padrão `5000`);
+2. inicia o servidor Flask na porta configurada em `PORT` (padrão `3002`);
 3. abre automaticamente o navegador já no endereço correto.
 
-**Se a porta 5000 já estiver ocupada** — por exemplo, outro sistema Flask
+**Se a porta 3002 já estiver ocupada** — por exemplo, outro sistema Flask
 rodando na mesma máquina — o sistema detecta isso automaticamente na
-inicialização e sobe na próxima porta livre (5001, 5002, ...), sem precisar
+inicialização e sobe na próxima porta livre (3003, 3004, ...), sem precisar
 configurar nada. O terminal mostra um aviso informando qual porta foi usada,
 e o navegador abre nela automaticamente.
 
@@ -60,11 +60,10 @@ SQL_SERVER=server_pn
 SQL_DATABASE=sismoura
 SQL_USERNAME=sa
 SQL_PASSWORD=SENHA_AQUI
-SQL_DRIVER=ODBC Driver 17 for SQL Server
 
 CACHE_TTL_SECONDS=120
 FLASK_HOST=0.0.0.0
-FLASK_PORT=5000
+PORT=3002
 FLASK_DEBUG=false
 ```
 
@@ -73,9 +72,8 @@ FLASK_DEBUG=false
 | `SQL_SERVER` | Endereço/nome do servidor SQL Server. |
 | `SQL_DATABASE` | Nome do banco de dados (`sismoura`). |
 | `SQL_USERNAME` / `SQL_PASSWORD` | Credenciais de acesso. |
-| `SQL_DRIVER` | Nome exato do driver ODBC instalado (confira em "Fontes de Dados ODBC"). |
 | `CACHE_TTL_SECONDS` | Tempo (segundos) que o dashboard fica em cache antes de recalcular. |
-| `FLASK_HOST` / `FLASK_PORT` | Endereço/porta em que o sistema roda. |
+| `FLASK_HOST` / `PORT` | Endereço/porta em que o sistema roda (3002 = Metas na tabela de portas do servidor). |
 
 Você pode testar a conexão a qualquer momento na tela **Configurações** do
 sistema (diagnóstico de SQL Server / SQLite / API), ou via o endpoint
@@ -87,13 +85,31 @@ seções abaixo, ajuste as consultas em `services/vendas_service.py` — são o
 
 ---
 
+## Publicar no servidor (Windows)
+
+1. Copie a pasta do projeto para o servidor (pode copiar junto a pasta `data\` para levar
+   os setores e metas, ou importar um backup depois em **Configurações > Backup dos dados**).
+2. Tenha o Python 3.10+ instalado.
+3. Crie o `.env` a partir do `.env.example` (com `PORT=3002` e a senha do SQL Server).
+4. Clique duas vezes em `servidor\instalar.bat` e confirme o pedido de administrador.
+
+Sobe sozinho ao ligar o computador (tarefa agendada "Metas (3002)"), reinicia se cair,
+e fica acessível em http://NOME-DO-SERVIDOR:3002. Log: `logs\servidor.log`.
+Para atualizar: copie os arquivos novos e rode o `instalar.bat` de novo.
+Para remover: `servidor\desinstalar.bat` (não apaga dados).
+
+No servidor o sistema roda com `python app.py --producao` (Waitress, aceita acesso da rede).
+Nesse modo, se a porta 3002 já estiver em uso, ele **não sobe** e não troca de porta sozinho.
+
+---
+
 ## 4. Estrutura do projeto
 
 ```
 ├── app.py                 # Ponto de entrada: cria o Flask app, registra rotas, logging
 ├── config.py               # Leitura do .env
 ├── database/
-│   ├── sql_server.py       # Conexão pyodbc + execução de queries parametrizadas
+│   ├── sql_server.py       # Conexão mssql-python + execução de queries parametrizadas
 │   ├── sqlite.py            # Conexão SQLite + criação de tabelas
 │   └── models.py            # DDL das tabelas de configuração local
 ├── services/                # Regras de negócio (sem depender de Flask)
@@ -108,7 +124,8 @@ seções abaixo, ajuste as consultas em `services/vendas_service.py` — são o
 ├── data/sistema.db           # Banco SQLite (criado automaticamente)
 ├── logs/app.log              # Log da aplicação (criado automaticamente)
 ├── tests/                    # Testes automatizados (pytest)
-└── scripts/                  # instalar.bat / iniciar.bat
+├── scripts/                  # instalar.bat / iniciar.bat (uso local)
+└── servidor/                 # scripts de publicação no servidor Windows (porta 3002)
 ```
 
 ### Como o setor "enxerga" as vendas
@@ -161,7 +178,7 @@ metas (incluindo o bloqueio de meta percentual sem histórico de vendas).
 
 **"Não foi possível conectar ao banco de dados"**: verifique se o servidor
 SQL Server está ligado e acessível pela rede, se as credenciais no `.env`
-estão corretas e se o driver ODBC informado em `SQL_DRIVER` está instalado.
+estão corretas e se o servidor SQL Server está acessível pela rede.
 A tela **Configurações** mostra o diagnóstico detalhado.
 
 **Erros aparecem apenas como mensagem genérica na tela**: o detalhe técnico

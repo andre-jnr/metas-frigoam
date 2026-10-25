@@ -1,7 +1,7 @@
 import logging
 from contextlib import contextmanager
 
-import pyodbc
+import mssql_python
 
 from config import Config
 
@@ -20,10 +20,11 @@ def get_connection(timeout: int = 10):
 
     filial = filiais_service.obter_filial_ativa()
     try:
-        conn = pyodbc.connect(
-            Config.sql_server_connection_string(filial["servidor"], filial["banco"]), timeout=timeout
+        conn = mssql_python.connect(
+            Config.sql_server_connection_string(filial["servidor"], filial["banco"]),
+            timeout=timeout, autocommit=False,
         )
-    except pyodbc.Error as exc:
+    except mssql_python.Error as exc:
         logger.error(
             "Falha ao conectar no SQL Server (%s/%s, filial=%s): %s",
             filial["servidor"], filial["banco"], filial["id"], exc,
@@ -42,8 +43,8 @@ def executar_query(sql: str, params: tuple = ()) -> list[dict]:
     with get_connection() as conn:
         cursor = conn.cursor()
         try:
-            cursor.execute(sql, params)
-        except pyodbc.Error as exc:
+            cursor.execute(sql, *params)
+        except mssql_python.Error as exc:
             logger.error("Erro ao executar consulta no SQL Server: %s", exc)
             raise SqlServerError("Erro ao consultar o banco de dados de vendas.") from exc
         colunas = [col[0] for col in cursor.description]

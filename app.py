@@ -1,4 +1,6 @@
 import logging
+import socket
+import sys
 import webbrowser
 from logging.handlers import RotatingFileHandler
 from threading import Timer
@@ -74,9 +76,26 @@ def _abrir_navegador(porta: int) -> None:
     webbrowser.open(f"http://localhost:{porta}")
 
 
+# Código de saída usado por servidor/iniciar.ps1 para não ficar tentando subir de novo.
+PORTA_OCUPADA = 3
+
 if __name__ == "__main__":
+    # python app.py             → modo local: servidor do Flask, abre o navegador e, se a
+    #                             porta estiver ocupada, usa a próxima livre
+    # python app.py --producao  → servidor da empresa: Waitress em 0.0.0.0; com a porta
+    #                             ocupada não sobe (regra 7 das orientações)
     logger = logging.getLogger("dashboard_metas")
     porta = Config.FLASK_PORT
+
+    if "--producao" in sys.argv:
+        if not porta_disponivel("0.0.0.0", porta):
+            logger.error("ERRO: a porta %s já está em uso.", porta)
+            sys.exit(PORTA_OCUPADA)
+        from waitress import serve
+        logger.info("Escutando na rede: http://%s:%s", socket.gethostname(), porta)
+        serve(app, host="0.0.0.0", port=porta, threads=8)
+        sys.exit(0)
+
     if not porta_disponivel(Config.FLASK_HOST, porta):
         nova_porta = resolver_porta(Config.FLASK_HOST, porta + 1)
         logger.warning(

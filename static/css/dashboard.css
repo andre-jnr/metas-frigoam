@@ -246,3 +246,50 @@
     70% { box-shadow: 0 0 0 7px rgba(53, 211, 153, 0); }
     100% { box-shadow: 0 0 0 0 rgba(53, 211, 153, 0); }
 }
+
+/* ===== Exportação em PDF (impressão) =====
+   .modo-pdf fica ativo no <html> só enquanto o PDF é gerado. O layout compacto
+   vale também na tela para que o JS possa medir o conteúdo e calcular, antes
+   de imprimir, quantas colunas e qual escala fazem tudo caber em uma página. */
+.pdf-header { display: none; }
+
+.modo-pdf .page-content { padding: 0; }
+.modo-pdf .pdf-header { display: block; margin-bottom: 10px; }
+.modo-pdf .pdf-header h1 { margin: 0 0 2px; font-size: 17px; color: var(--text-primary); }
+.modo-pdf .pdf-header p { margin: 0; font-size: 11px; color: var(--text-secondary); }
+
+.modo-pdf .summary-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.modo-pdf .summary-card { flex-direction: row; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; }
+.modo-pdf .summary-card .summary-icon { width: 22px; height: 22px; border-radius: 6px; margin: 0; }
+.modo-pdf .summary-icon svg { width: 12px; height: 12px; }
+.modo-pdf .summary-label { font-size: 11px; }
+.modo-pdf .summary-value { font-size: 14px; }
+
+.modo-pdf .setores-grid { grid-template-columns: repeat(var(--pdf-cols, 6), 1fr) !important; gap: 8px; }
+.modo-pdf .setor-card { padding: 9px 10px 8px; gap: 4px; }
+.modo-pdf .setor-card-header { font-size: 12px; }
+.modo-pdf .setor-star { width: 13px; height: 13px; }
+.modo-pdf .gauge-wrap { max-width: 120px; }
+.modo-pdf .gauge-value { font-size: 18px; }
+.modo-pdf .gauge-value-money { font-size: 14px; }
+.modo-pdf .gauge-status { font-size: 9px; padding: 2px 7px; }
+.modo-pdf .setor-card-metrics { font-size: 10px; padding-top: 6px; }
+.modo-pdf .metrics-row { gap: 4px 8px; }
+/* Mesmo efeito do "olhinho", sem depender da transição de altura. */
+.modo-pdf.ocultar-valores .metrics-row-money { display: none; }
+.modo-pdf .fade-in, .modo-pdf .setor-star.pop { animation: none; }
+
+@media print {
+    /* A4 paisagem com 10mm de margem: área útil usada em PDF_AREA no dashboard.js. */
+    @page { size: A4 landscape; margin: 10mm; }
+
+    html, body { background: #ffffff !important; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    .sidebar, .topbar, .toast-container { display: none !important; }
+    .app-shell, .main-area { display: block !important; min-height: 0 !important; }
+    .modo-pdf .page-content { zoom: var(--pdf-zoom, 1); }
+
+    .surface-card { box-shadow: none !important; }
+    .setor-card, .summary-card { break-inside: avoid; page-break-inside: avoid; }
+}

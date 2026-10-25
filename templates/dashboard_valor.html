@@ -22,6 +22,10 @@
         <option value="600000">Auto: 10 min</option>
         <option value="1800000">Auto: 30 min</option>
     </select>
+    <button class="btn" id="btn-gerar-pdf" title="Gerar PDF dos gráficos sem valores monetários">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15l3 3 3-3"/></svg>
+        Gerar PDF
+    </button>
     <button class="btn btn-primary" id="btn-atualizar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         Atualizar
@@ -30,6 +34,11 @@
 {% endblock %}
 
 {% block content %}
+<div class="pdf-header" id="pdf-header">
+    <h1 id="pdf-titulo"></h1>
+    <p id="pdf-gerado-em"></p>
+</div>
+
 <div class="summary-grid" id="summary-grid">
     <!-- preenchido via JS -->
 </div>

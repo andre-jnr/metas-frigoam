@@ -24,6 +24,43 @@
         no seletor ao lado do botão "Atualizar". A preferência fica salva neste navegador.
     </p>
 </div>
+<div class="surface-card" style="padding:22px; max-width:560px; margin-top:18px;">
+    <h3 style="margin:0 0 6px;font-size:15px;">Backup dos dados</h3>
+    <p class="text-muted mt-0" style="font-size:13px;">
+        Exporte todos os setores (com grupos, subgrupos, PDVs e dias excluídos), as metas e as
+        preferências de todas as filiais para um arquivo <strong>.json</strong>. Em outra instalação,
+        importe esse arquivo para não precisar cadastrar tudo novamente.
+    </p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn btn-primary" href="/api/backup/exportar" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Exportar backup
+        </a>
+        <button class="btn" id="btn-importar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+            Importar backup
+        </button>
+        <input type="file" id="input-backup" accept=".json,application/json" style="display:none;">
+    </div>
+</div>
+
+<div class="modal-overlay" id="import-modal">
+    <div class="modal-box" style="max-width:440px;">
+        <div class="modal-header"><h2>Importar backup</h2></div>
+        <div class="modal-body">
+            <p class="mt-0" id="import-modal-resumo"></p>
+            <p class="text-muted" style="font-size:13px;">
+                <strong style="color:var(--danger);">Atenção:</strong> todos os setores e metas cadastrados
+                hoje neste sistema serão <strong>substituídos</strong> pelo conteúdo do arquivo.
+                Se quiser guardar os dados atuais, exporte um backup antes.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="import-modal-cancel">Cancelar</button>
+            <button class="btn btn-danger" id="import-modal-ok">Substituir e importar</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -58,6 +95,54 @@
 
     document.getElementById("btn-testar").addEventListener("click", testar);
     testar();
+
+    var inputBackup = document.getElementById("input-backup");
+    var importModal = document.getElementById("import-modal");
+    var importResumo = document.getElementById("import-modal-resumo");
+    var importOk = document.getElementById("import-modal-ok");
+    var backupPendente = null;
+
+    function fecharImport() {
+        importModal.classList.remove("open");
+        backupPendente = null;
+        inputBackup.value = "";
+    }
+
+    document.getElementById("btn-importar").addEventListener("click", function () { inputBackup.click(); });
+
+    inputBackup.addEventListener("change", async function () {
+        var arquivo = inputBackup.files[0];
+        if (!arquivo) return;
+        try {
+            backupPendente = JSON.parse(await arquivo.text());
+        } catch (e) {
+            Toast.error("O arquivo selecionado não é um JSON válido.");
+            inputBackup.value = "";
+            return;
+        }
+        var dados = (backupPendente && backupPendente.dados) || {};
+        var qtd = function (t) { return (dados[t] || []).length; };
+        importResumo.innerHTML =
+            "Arquivo <strong>" + arquivo.name + "</strong>" +
+            (backupPendente.exportado_em ? " (exportado em " + Fmt.dataHora(backupPendente.exportado_em) + ")" : "") +
+            ": <strong>" + qtd("setores") + "</strong> setor(es) e <strong>" + qtd("metas") + "</strong> meta(s).";
+        importModal.classList.add("open");
+    });
+
+    importOk.addEventListener("click", async function () {
+        if (!backupPendente) return;
+        importOk.disabled = true;
+        try {
+            var resumo = await apiFetch("/api/backup/importar", { method: "POST", body: JSON.stringify(backupPendente) });
+            fecharImport();
+            Toast.success("Backup importado: " + resumo.setores + " setor(es) e " + resumo.metas + " meta(s).");
+            setTimeout(function () { location.reload(); }, 1200);
+        } catch (e) { /* erro já exibido via toast */ }
+        finally { importOk.disabled = false; }
+    });
+
+    document.getElementById("import-modal-cancel").addEventListener("click", fecharImport);
+    importModal.addEventListener("click", function (ev) { if (ev.target === importModal) fecharImport(); });
 })();
 </script>
 {% endblock %}

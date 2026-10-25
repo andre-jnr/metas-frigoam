@@ -200,6 +200,86 @@
         }
     }
 
+    function nomeUnidade() {
+        var select = document.getElementById("filial-select");
+        var opt = select && select.options[select.selectedIndex];
+        return opt ? opt.textContent.trim() : "";
+    }
+
+    function dois(n) { return String(n).padStart(2, "0"); }
+
+    // Área útil de uma folha A4 paisagem com margem de 10mm (277 x 190 mm), em px CSS.
+    var MM_PX = 96 / 25.4;
+    var PDF_AREA = { largura: Math.floor(277 * MM_PX), altura: Math.floor(190 * MM_PX) };
+
+    // Com o .modo-pdf ativo, testa de 5 a 10 colunas e escolhe a que permite a
+    // maior escala (zoom) com todo o conteúdo cabendo em uma única página.
+    function ajustarPaginaUnica() {
+        var root = document.documentElement;
+        var pageContent = document.querySelector(".page-content");
+        var header = document.getElementById("pdf-header");
+
+        function medirAltura(cols, largura) {
+            root.style.setProperty("--pdf-cols", cols);
+            pageContent.style.width = largura + "px";
+            return setoresGrid.getBoundingClientRect().bottom - header.getBoundingClientRect().top;
+        }
+
+        var FOLGA = 0.97; // margem para arredondamentos da impressão
+        var ZOOM_MAX = 1.35; // amplia quando há poucos setores, para ocupar a folha
+        var melhor = null;
+        for (var cols = 5; cols <= 10; cols++) {
+            var zoom = Math.min(ZOOM_MAX, FOLGA * PDF_AREA.altura / medirAltura(cols, PDF_AREA.largura));
+            // Com zoom != 1 a largura útil muda (largura / zoom); mede de novo nessa largura.
+            if (zoom !== 1) zoom = Math.min(ZOOM_MAX, FOLGA * PDF_AREA.altura / medirAltura(cols, PDF_AREA.largura / zoom));
+            if (!melhor || zoom > melhor.zoom + 0.001) melhor = { cols: cols, zoom: zoom };
+        }
+
+        root.style.setProperty("--pdf-cols", melhor.cols);
+        root.style.setProperty("--pdf-zoom", melhor.zoom);
+        pageContent.style.width = "";
+    }
+
+    // Gera o PDF pela impressão do navegador ("Salvar como PDF"): força o modo
+    // "ocultar valores" e o tema claro só durante a impressão e restaura depois.
+    function gerarPdf() {
+        var mesNome = MESES[Number(filtroMes.value) - 1];
+        var ano = filtroAno.value;
+        var unidade = nomeUnidade();
+        var agora = new Date();
+        var dataBr = dois(agora.getDate()) + "/" + dois(agora.getMonth() + 1) + "/" + agora.getFullYear();
+        var hora = dois(agora.getHours()) + ":" + dois(agora.getMinutes());
+
+        var titulo = "Dashboard de meta de " + mesNome + " " + ano + (unidade ? " da unidade " + unidade : "");
+        document.getElementById("pdf-titulo").textContent = titulo;
+        document.getElementById("pdf-gerado-em").textContent = "Relatório gerado em " + dataBr + " às " + hora;
+
+        var root = document.documentElement;
+        var tituloOriginal = document.title;
+        var temaOriginal = root.getAttribute("data-theme");
+        var ocultoOriginal = root.classList.contains("ocultar-valores");
+
+        // O título do documento vira o nome sugerido do arquivo PDF.
+        document.title = titulo + " - " + dataBr.replace(/\//g, "-") + " " + hora.replace(":", "h");
+        root.setAttribute("data-theme", "light");
+        root.classList.add("ocultar-valores");
+        root.classList.add("modo-pdf");
+        ajustarPaginaUnica();
+
+        function restaurar() {
+            window.removeEventListener("afterprint", restaurar);
+            document.title = tituloOriginal;
+            root.classList.remove("modo-pdf");
+            root.style.removeProperty("--pdf-cols");
+            root.style.removeProperty("--pdf-zoom");
+            if (temaOriginal) root.setAttribute("data-theme", temaOriginal);
+            else root.removeAttribute("data-theme");
+            root.classList.toggle("ocultar-valores", ocultoOriginal);
+        }
+        window.addEventListener("afterprint", restaurar);
+        window.print();
+    }
+
     popularFiltros();
     skeletonSummary();
     skeletonCards(10);
@@ -208,5 +288,6 @@
     filtroMes.addEventListener("change", function () { carregarDashboard(false); });
     filtroAno.addEventListener("change", function () { carregarDashboard(false); });
     btnAtualizar.addEventListener("click", function () { carregarDashboard(true); });
+    document.getElementById("btn-gerar-pdf").addEventListener("click", gerarPdf);
     configurarAutoRefresh();
 })();

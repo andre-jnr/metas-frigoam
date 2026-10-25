@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from database.sql_server import testar_conexao
 from database.sqlite import get_connection
-from services import dashboard_service, filiais_service, metas_service, setores_service, vendas_service
+from services import backup_service, dashboard_service, filiais_service, metas_service, setores_service, vendas_service
 from services.errors import ValidationError
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -276,3 +276,21 @@ def excluir_meta(meta_id):
     metas_service.excluir_meta(meta_id)
     dashboard_service.invalidar_cache()
     return "", 204
+
+
+@api_bp.get("/backup/exportar")
+def exportar_backup():
+    resp = jsonify(backup_service.exportar())
+    nome = f"backup_metas_{datetime.now():%Y-%m-%d_%H%M}.json"
+    resp.headers["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resp
+
+
+@api_bp.post("/backup/importar")
+def importar_backup():
+    body = request.get_json(force=True, silent=True)
+    if body is None:
+        raise ValidationError("Arquivo inválido: o conteúdo não é um JSON válido.")
+    resumo = backup_service.importar(body)
+    dashboard_service.invalidar_cache()
+    return jsonify(resumo)

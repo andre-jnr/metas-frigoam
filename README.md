@@ -70,6 +70,7 @@ FLASK_DEBUG=false
 | Variável | Descrição |
 |---|---|
 | `SQL_SERVER` | Endereço/nome do servidor SQL Server. |
+| `FILIAIS_ATIVAS` | Unidades que aparecem no seletor (`pn`, `prq10`, `ad`), separadas por vírgula; a primeira é a padrão. Vazio = todas. Ex.: `FILIAIS_ATIVAS=pn` num servidor que só atende Ponta Negra. |
 | `SQL_DATABASE` | Nome do banco de dados (`sismoura`). |
 | `SQL_USERNAME` / `SQL_PASSWORD` | Credenciais de acesso. |
 | `CACHE_TTL_SECONDS` | Tempo (segundos) que o dashboard fica em cache antes de recalcular. |

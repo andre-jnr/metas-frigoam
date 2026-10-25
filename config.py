@@ -6,6 +6,22 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 
+def filtrar_filiais(todas: list[dict], filiais_ativas: str) -> list[dict]:
+    """Restringe as filiais à lista de ids separados por vírgula de FILIAIS_ATIVAS
+    (ex.: "pn" ou "pn,prq10"), na ordem em que foram escritos. Vazio = todas."""
+    ids = [i.strip().lower() for i in (filiais_ativas or "").split(",") if i.strip()]
+    if not ids:
+        return list(todas)
+    por_id = {f["id"]: f for f in todas}
+    desconhecidos = [i for i in ids if i not in por_id]
+    if desconhecidos:
+        raise ValueError(
+            f"FILIAIS_ATIVAS no .env tem filial desconhecida: {', '.join(desconhecidos)}. "
+            f"Use: {', '.join(por_id)}."
+        )
+    return [por_id[i] for i in dict.fromkeys(ids)]
+
+
 class Config:
     SQL_SERVER = os.getenv("SQL_SERVER", "")
     SQL_DATABASE = os.getenv("SQL_DATABASE", "")
@@ -18,7 +34,7 @@ class Config:
     # usam o mesmo "sismoura"; Morada do Sol tem seu próprio "sismoura_srv").
     # SQL_SERVER_PN cai de volta em SQL_SERVER pra não quebrar quem já tinha só essa
     # variável configurada.
-    FILIAIS = [
+    TODAS_FILIAIS = [
         {
             "id": "pn", "nome": "Ponta Negra",
             "servidor": os.getenv("SQL_SERVER_PN", os.getenv("SQL_SERVER", "server_pn")),
@@ -35,6 +51,9 @@ class Config:
             "banco": os.getenv("SQL_DATABASE_AD", "sismoura_srv"),
         },
     ]
+    # Filiais que esta instalação mostra no seletor e aceita como ativa. A primeira da
+    # lista é a padrão. Setores/metas de filiais fora da lista ficam no banco, só ocultos.
+    FILIAIS = filtrar_filiais(TODAS_FILIAIS, os.getenv("FILIAIS_ATIVAS", ""))
 
     CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "120"))
 

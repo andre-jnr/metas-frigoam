@@ -1,5 +1,6 @@
 import pytest
 
+from config import Config, filtrar_filiais
 from services import filiais_service as fs
 from services.errors import ValidationError
 
@@ -43,3 +44,27 @@ def test_definir_filial_ativa_troca_de_volta(temp_db):
     fs.definir_filial_ativa("prq10")
     fs.definir_filial_ativa("pn")
     assert fs.obter_filial_ativa()["id"] == "pn"
+
+
+def test_filtrar_filiais_vazio_mantem_todas():
+    assert [f["id"] for f in filtrar_filiais(Config.TODAS_FILIAIS, "")] == ["pn", "prq10", "ad"]
+
+
+def test_filtrar_filiais_respeita_lista_e_ordem():
+    filiais = filtrar_filiais(Config.TODAS_FILIAIS, " AD , pn,ad")
+    assert [f["id"] for f in filiais] == ["ad", "pn"]
+
+
+def test_filtrar_filiais_desconhecida_gera_erro():
+    with pytest.raises(ValueError, match="xyz"):
+        filtrar_filiais(Config.TODAS_FILIAIS, "pn,xyz")
+
+
+def test_filiais_ativas_restringe_seletor_e_troca(temp_db, monkeypatch):
+    fs.definir_filial_ativa("prq10")
+    monkeypatch.setattr(Config, "FILIAIS", filtrar_filiais(Config.TODAS_FILIAIS, "pn"))
+    # a filial salva saiu da lista: volta para a primeira liberada
+    assert fs.obter_filial_ativa()["id"] == "pn"
+    assert [f["id"] for f in fs.listar_filiais()] == ["pn"]
+    with pytest.raises(ValidationError):
+        fs.definir_filial_ativa("ad")

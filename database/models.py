@@ -33,6 +33,13 @@ MIGRACOES_SETORES = [
     "ALTER TABLE setores ADD COLUMN dias_semana_excluidos TEXT",
 ]
 
+# automatica_motivo: por que a meta automática ficou nesse degrau — INICIO (primeiro mês da
+# regra), BATEU / NAO_BATEU (resultado da meta do mês anterior).
+MIGRACOES_METAS = [
+    "ALTER TABLE metas ADD COLUMN automatica INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE metas ADD COLUMN automatica_motivo TEXT",
+]
+
 DDL_SETOR_GRUPO = """
 CREATE TABLE IF NOT EXISTS setor_grupo (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,6 +80,24 @@ CREATE TABLE IF NOT EXISTS metas (
 );
 """
 
+# Regra de meta automática por setor: a cada mês a meta percentual sobe um degrau da
+# escada (calculos.proximo_percentual) se o setor bateu a meta do mês anterior, e desce
+# um degrau se não bateu. As metas geradas ficam na tabela `metas` com automatica = 1.
+DDL_METAS_AUTOMATICAS = """
+CREATE TABLE IF NOT EXISTS metas_automaticas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    setor_id INTEGER NOT NULL UNIQUE REFERENCES setores(id) ON DELETE CASCADE,
+    ano_inicio INTEGER NOT NULL,
+    mes_inicio INTEGER NOT NULL,
+    percentual_inicial REAL NOT NULL,
+    percentual_minimo REAL NOT NULL DEFAULT 3,
+    percentual_maximo REAL,
+    base_comparacao TEXT NOT NULL CHECK (base_comparacao IN ('MESMO_MES_ANO_ANTERIOR', 'MES_ANTERIOR')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+"""
+
 DDL_INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_setor_grupo_setor ON setor_grupo(setor_id);
 CREATE INDEX IF NOT EXISTS idx_setor_subgrupo_setor ON setor_subgrupo(setor_id);
@@ -80,7 +105,9 @@ CREATE INDEX IF NOT EXISTS idx_metas_periodo ON metas(ano, mes);
 CREATE INDEX IF NOT EXISTS idx_metas_setor ON metas(setor_id);
 """
 
-ALL_DDL = [DDL_SETORES, DDL_APP_CONFIG, DDL_SETOR_GRUPO, DDL_SETOR_SUBGRUPO, DDL_METAS, DDL_INDEXES]
+ALL_DDL = [
+    DDL_SETORES, DDL_APP_CONFIG, DDL_SETOR_GRUPO, DDL_SETOR_SUBGRUPO, DDL_METAS, DDL_METAS_AUTOMATICAS, DDL_INDEXES,
+]
 
 TIPOS_META = ("PERCENTUAL", "VALOR_FIXO")
 BASES_COMPARACAO = ("MESMO_MES_ANO_ANTERIOR", "MES_ANTERIOR", "NAO_APLICAVEL")

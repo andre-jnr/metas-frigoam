@@ -4,7 +4,10 @@ from flask import Blueprint, jsonify, request
 
 from database.sql_server import testar_conexao
 from database.sqlite import get_connection
-from services import backup_service, dashboard_service, filiais_service, metas_service, setores_service, vendas_service
+from services import (
+    backup_service, dashboard_service, filiais_service, metas_automaticas_service, metas_service,
+    setores_service, vendas_service,
+)
 from services.errors import ValidationError
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -196,6 +199,7 @@ def listar_metas():
     setor_id = _int_arg("setor_id")
     ano = _int_arg("ano")
     mes = _int_arg("mes")
+    metas_automaticas_service.sincronizar_todas()
     return jsonify(metas_service.listar_metas(setor_id, ano, mes))
 
 
@@ -294,3 +298,27 @@ def importar_backup():
     resumo = backup_service.importar(body)
     dashboard_service.invalidar_cache()
     return jsonify(resumo)
+
+
+@api_bp.get("/metas-automaticas")
+def listar_metas_automaticas():
+    metas_automaticas_service.sincronizar_todas()
+    return jsonify(metas_automaticas_service.listar_regras())
+
+
+@api_bp.put("/metas-automaticas/<int:setor_id>")
+def salvar_meta_automatica(setor_id):
+    body = request.get_json(force=True, silent=True) or {}
+    regra = metas_automaticas_service.salvar_regra(
+        setor_id, body.get("ano_inicio"), body.get("mes_inicio"), body.get("percentual_inicial"),
+        body.get("base_comparacao"), body.get("percentual_minimo", 3), body.get("percentual_maximo"),
+    )
+    dashboard_service.invalidar_cache()
+    return jsonify(regra)
+
+
+@api_bp.delete("/metas-automaticas/<int:setor_id>")
+def excluir_meta_automatica(setor_id):
+    metas_automaticas_service.excluir_regra(setor_id)
+    dashboard_service.invalidar_cache()
+    return "", 204

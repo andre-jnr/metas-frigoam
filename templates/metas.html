@@ -10,6 +10,10 @@
         <select id="filtro-mes" class="select-field"></select>
         <select id="filtro-ano" class="select-field"></select>
     </div>
+    <button class="btn" id="btn-metas-automaticas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h5v-5h5v-5h5V5h3"/></svg>
+        Metas automáticas
+    </button>
     <button class="btn btn-primary" id="btn-nova-meta">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Nova Meta
@@ -107,6 +111,95 @@
     </div>
 </div>
 
+<!-- Modal de metas automáticas -->
+<div class="modal-overlay" id="auto-modal">
+    <div class="modal-box auto-modal-box">
+        <div class="modal-header">
+            <h2>Metas automáticas</h2>
+            <button class="btn btn-icon btn-ghost" id="auto-modal-close">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <section class="surface-card escada-card">
+                <div class="flex-between" style="gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <h3 class="escada-titulo" id="escada-titulo">Como funciona</h3>
+                        <p class="text-muted escada-sub" id="escada-sub">Exemplo de 8 meses começando em 5%. Bateu a meta do mês anterior: sobe um degrau. Não bateu: desce um degrau.</p>
+                    </div>
+                    <button class="btn btn-sm btn-ghost" id="escada-repetir">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                        Repetir
+                    </button>
+                </div>
+                <div class="escada-scroll">
+                    <div class="escada" id="escada" aria-hidden="true"></div>
+                </div>
+                <div class="escada-narracao" id="escada-narracao" aria-live="polite"></div>
+                <div class="escada-meses" id="escada-meses"></div>
+            </section>
+
+            <div class="flex-between" style="margin:18px 0 10px;">
+                <h3 style="margin:0;font-size:14px;">Setores com meta automática</h3>
+                <button class="btn btn-sm btn-primary" id="auto-nova">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                    Nova regra
+                </button>
+            </div>
+            <div id="auto-lista"></div>
+
+            <form class="surface-card auto-form" id="auto-form" style="display:none;">
+                <h3 class="escada-titulo" id="auto-form-titulo">Nova regra</h3>
+                <div class="field-group">
+                    <label>Setor</label>
+                    <select class="select-field" id="auto-setor"></select>
+                </div>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>Começa em (mês)</label>
+                        <select class="select-field" id="auto-mes"></select>
+                    </div>
+                    <div class="field-group">
+                        <label>Ano</label>
+                        <select class="select-field" id="auto-ano"></select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>Meta inicial</label>
+                        <select class="select-field" id="auto-inicial"></select>
+                    </div>
+                    <div class="field-group">
+                        <label>Período comparativo</label>
+                        <select class="select-field" id="auto-base">
+                            <option value="MESMO_MES_ANO_ANTERIOR">Mesmo mês do ano anterior</option>
+                            <option value="MES_ANTERIOR">Mês anterior</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>Mínimo (não desce abaixo de)</label>
+                        <select class="select-field" id="auto-minimo"></select>
+                    </div>
+                    <div class="field-group">
+                        <label>Máximo (não sobe acima de)</label>
+                        <select class="select-field" id="auto-maximo"></select>
+                    </div>
+                </div>
+                <p class="field-hint" style="margin:0 0 14px;">
+                    Ao salvar, as metas automáticas do setor são refeitas desde o mês de início.
+                    Metas que você editou à mão são mantidas, e a escada continua a partir delas.
+                </p>
+                <div class="flex gap-8" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-ghost" id="auto-cancelar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="auto-salvar">Salvar regra</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal-overlay" id="confirm-modal">
     <div class="modal-box" style="max-width:420px;">
         <div class="modal-header"><h2>Confirmar exclusão</h2></div>
@@ -122,4 +215,5 @@
 {% block extra_js %}
 <script>window.DM_CONFIG = { anoAtual: {{ ano_atual }}, mesAtual: {{ mes_atual }} };</script>
 <script src="{{ url_for('static', filename='js/metas.js') }}"></script>
+<script src="{{ url_for('static', filename='js/metas_automaticas.js') }}"></script>
 {% endblock %}

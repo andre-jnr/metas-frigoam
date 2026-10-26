@@ -11,7 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from config import Config
-from services import calculos, metas_service, setores_service, vendas_service
+from services import calculos, metas_automaticas_service, metas_service, setores_service, vendas_service
 from services.errors import ValidationError
 
 logger = logging.getLogger("dashboard_metas.dashboard_service")
@@ -28,6 +28,7 @@ def _periodo_base(ano: int, mes: int, base_comparacao: str):
 
 
 def _montar_dashboard(ano: int, mes: int) -> dict:
+    metas_automaticas_service.sincronizar_todas()
     setores = setores_service.listar_setores(apenas_ativos=True)
     agora = datetime.now().isoformat(timespec="seconds")
 
@@ -178,6 +179,7 @@ def montar_dashboard_setor(setor_id: int, ano: int, mes: int) -> dict:
     setor = setores_service.obter_setor(setor_id)
     if setor is None:
         raise ValidationError("Setor não encontrado.", status_code=404)
+    metas_automaticas_service.sincronizar_todas()
 
     grupo_codigos = setores_service.obter_grupos_do_setor(setor_id)
     subgrupos_por_grupo = setores_service.obter_subgrupos_do_setor(setor_id)

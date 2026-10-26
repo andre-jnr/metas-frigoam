@@ -71,6 +71,7 @@ def _meta_row_to_dict(row: sqlite3.Row) -> dict:
         "valor_meta": row["valor_meta"],
         "base_comparacao": row["base_comparacao"],
         "ativo": bool(row["ativo"]),
+        "automatica": bool(row["automatica"]),
         "created_at": row["created_at"],
         "updated_at": row["updated_at"],
     }
@@ -217,8 +218,10 @@ def atualizar_meta(
     with get_connection() as conn:
         try:
             conn.execute(
+                # editar uma meta automática a transforma em manual: a regra não mexe mais nela
                 """UPDATE metas SET setor_id=?, ano=?, mes=?, tipo_meta=?, percentual_meta=?,
-                   valor_meta=?, base_comparacao=?, updated_at=datetime('now') WHERE id=?""",
+                   valor_meta=?, base_comparacao=?, automatica=0, automatica_motivo=NULL,
+                   updated_at=datetime('now') WHERE id=?""",
                 (setor_id, ano, mes, dados["tipo_meta"], dados["percentual_meta"], dados["valor_meta"],
                  dados["base_comparacao"], meta_id),
             )

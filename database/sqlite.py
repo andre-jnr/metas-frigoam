@@ -3,7 +3,7 @@ import sqlite3
 from contextlib import contextmanager
 
 from config import Config
-from database.models import ALL_DDL, DDL_SETORES, MIGRACOES_SETORES
+from database.models import ALL_DDL, DDL_SETORES, MIGRACOES_METAS, MIGRACOES_SETORES
 
 logger = logging.getLogger("dashboard_metas.sqlite")
 
@@ -11,7 +11,7 @@ logger = logging.getLogger("dashboard_metas.sqlite")
 def _aplicar_migracoes(conn: sqlite3.Connection) -> None:
     """Adiciona colunas novas em bancos criados por versões anteriores. Idempotente:
     ignora silenciosamente quando a coluna já existe."""
-    for statement in MIGRACOES_SETORES:
+    for statement in MIGRACOES_SETORES + MIGRACOES_METAS:
         try:
             conn.execute(statement)
         except sqlite3.OperationalError as exc:

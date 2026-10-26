@@ -31,11 +31,11 @@ def test_exportar_e_importar_restaura_tudo(temp_db):
     backup = bs.exportar()
 
     with get_connection() as conn:
-        for tabela in ("metas", "setor_subgrupo", "setor_grupo", "setores", "app_config"):
+        for tabela in ("metas_automaticas", "metas", "setor_subgrupo", "setor_grupo", "setores", "app_config"):
             conn.execute(f"DELETE FROM {tabela}")
 
     resumo = bs.importar(backup)
-    assert resumo == {"setores": 2, "setor_grupo": 2, "setor_subgrupo": 2, "metas": 1, "app_config": 1}
+    assert resumo == {"setores": 2, "setor_grupo": 2, "setor_subgrupo": 2, "metas": 1, "metas_automaticas": 0, "app_config": 1}
     assert bs.exportar()["dados"] == backup["dados"]
     assert fs.obter_filial_ativa()["id"] == "ad"
     fs.definir_filial_ativa("pn")

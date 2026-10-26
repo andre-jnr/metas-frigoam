@@ -181,6 +181,7 @@
     function renderLinha(meta) {
         var tr = document.createElement("tr");
         var tipoLabel = meta.tipo_meta === "VALOR_FIXO" ? "Valor fixo" : ((meta.percentual_meta >= 0 ? "+" : "") + meta.percentual_meta + "%");
+        if (meta.automatica) tipoLabel += ' <span class="badge badge-auto" title="Gerada pela meta automática do setor">Automática</span>';
         tr.innerHTML =
             "<td><strong>" + meta.setor_nome + "</strong></td>" +
             "<td>" + MESES[meta.mes - 1] + "/" + meta.ano + "</td>" +
@@ -275,6 +276,7 @@
     filtroAno.addEventListener("change", carregarMetas);
     filtroMes.addEventListener("change", carregarMetas);
 
+    window.recarregarMetas = carregarMetas;
     popularSelects();
     carregarSetores().then(carregarMetas);
 })();

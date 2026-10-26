@@ -140,3 +140,36 @@ def variacao_percentual(atual: Decimal | float, comparativo: Decimal | float) ->
     if comparativo <= 0:
         return None
     return ((atual - comparativo) / comparativo * Decimal("100")).quantize(TWOPLACES, rounding=ROUND_HALF_UP)
+
+
+# ---------- Escada das metas automáticas ----------
+# Degraus de 2,5 em 2,5 pontos arredondados: 0, 3, 5, 8, 10, 13, 15, 18, 20, 23, 25...
+PASSO_ESCADA = Decimal("2.5")
+
+
+def degrau_escada(indice: int) -> Decimal:
+    return (PASSO_ESCADA * indice).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+
+def proximo_percentual(
+    atual: Decimal | float, bateu: bool, minimo: Decimal | float, maximo: Decimal | float | None = None
+) -> Decimal:
+    """Bateu a meta do mês anterior -> sobe para o próximo degrau acima de `atual`;
+    não bateu -> desce para o degrau abaixo. O resultado fica entre `minimo` e `maximo`
+    (sem teto quando maximo é None). Funciona também com `atual` fora da escada (ex.: 6%)."""
+    atual = _dec(atual)
+    minimo = _dec(minimo)
+    indice = 0
+    while degrau_escada(indice) <= atual:
+        indice += 1
+    # aqui degrau_escada(indice) é o primeiro degrau acima de `atual`
+    if bateu:
+        novo = degrau_escada(indice)
+    else:
+        indice -= 1
+        if degrau_escada(indice) == atual:
+            indice -= 1
+        novo = degrau_escada(max(indice, 0))
+    if maximo is not None:
+        novo = min(novo, _dec(maximo))
+    return max(novo, minimo)

@@ -34,8 +34,13 @@ TABELAS = {
     },
     "metas": {
         "colunas": ["id", "setor_id", "ano", "mes", "tipo_meta", "percentual_meta", "valor_meta",
-                    "base_comparacao", "ativo", "created_at", "updated_at"],
+                    "base_comparacao", "ativo", "automatica", "automatica_motivo", "created_at", "updated_at"],
         "obrigatorias": ["setor_id", "ano", "mes", "tipo_meta", "base_comparacao"],
+    },
+    "metas_automaticas": {
+        "colunas": ["id", "setor_id", "ano_inicio", "mes_inicio", "percentual_inicial", "percentual_minimo",
+                    "percentual_maximo", "base_comparacao", "created_at", "updated_at"],
+        "obrigatorias": ["setor_id", "ano_inicio", "mes_inicio", "percentual_inicial", "base_comparacao"],
     },
     "app_config": {
         "colunas": ["chave", "valor"],

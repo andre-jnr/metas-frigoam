@@ -262,6 +262,31 @@ def montar_dashboard_setor(setor_id: int, ano: int, mes: int) -> dict:
 
 TIPOS_COMPARACAO_PRODUTO = ("MESMO_MES_ANO_ANTERIOR", "MES_ANTERIOR")
 
+# Lista de produtos sem movimentação: só entram produtos que venderam em algum momento
+# nesta janela antes do período atual. Sem esse corte a lista vira o cadastro inteiro
+# (na Loja, ~21 mil produtos ativos que não vendem há anos).
+MESES_JANELA_SEM_MOVIMENTACAO = 12
+
+
+def _periodos_produtos(setor_id: int, ano: int, mes: int, tipo_comparacao: str | None):
+    """Tipo de comparação efetivo + períodos 'equivalentes' (atual e comparativo) usados
+    pelo detalhamento por produto. Sem tipo informado, segue a base da meta do setor."""
+    if tipo_comparacao not in TIPOS_COMPARACAO_PRODUTO:
+        meta = metas_service.meta_ativa_do_setor(setor_id, ano, mes)
+        if meta and meta["tipo_meta"] == "PERCENTUAL" and meta["base_comparacao"] in TIPOS_COMPARACAO_PRODUTO:
+            tipo_comparacao = meta["base_comparacao"]
+        else:
+            tipo_comparacao = "MESMO_MES_ANO_ANTERIOR"
+
+    data_ini_atual, data_fim_atual = calculos.periodo_equivalente(ano, mes)
+    dias = data_fim_atual.day
+    if tipo_comparacao == "MES_ANTERIOR":
+        ano_base, mes_base = calculos.mes_anterior(ano, mes)
+    else:
+        ano_base, mes_base = calculos.mesmo_mes_ano_anterior(ano, mes)
+    data_ini_base, data_fim_base = calculos.periodo_equivalente_base(ano_base, mes_base, dias)
+    return tipo_comparacao, (data_ini_atual, data_fim_atual), (data_ini_base, data_fim_base)
+
 
 def montar_produtos_setor(
     setor_id: int, ano: int, mes: int, tipo_comparacao: str | None = None, metrica: str = "valor"
@@ -277,12 +302,9 @@ def montar_produtos_setor(
     if setor is None:
         raise ValidationError("Setor não encontrado.", status_code=404)
 
-    if tipo_comparacao not in TIPOS_COMPARACAO_PRODUTO:
-        meta = metas_service.meta_ativa_do_setor(setor_id, ano, mes)
-        if meta and meta["tipo_meta"] == "PERCENTUAL" and meta["base_comparacao"] in TIPOS_COMPARACAO_PRODUTO:
-            tipo_comparacao = meta["base_comparacao"]
-        else:
-            tipo_comparacao = "MESMO_MES_ANO_ANTERIOR"
+    tipo_comparacao, (data_ini_atual, data_fim_atual), (data_ini_base, data_fim_base) = _periodos_produtos(
+        setor_id, ano, mes, tipo_comparacao
+    )
 
     grupo_codigos = setores_service.obter_grupos_do_setor(setor_id)
     subgrupos_por_grupo = setores_service.obter_subgrupos_do_setor(setor_id)
@@ -290,14 +312,6 @@ def montar_produtos_setor(
         pdv_incluidos=setor["pdv_incluidos"], pdv_excluidos=setor["pdv_excluidos"],
         dias_semana_excluidos=setor["dias_semana_excluidos"],
     )
-
-    data_ini_atual, data_fim_atual = calculos.periodo_equivalente(ano, mes)
-    dias = data_fim_atual.day
-    if tipo_comparacao == "MES_ANTERIOR":
-        ano_base, mes_base = calculos.mes_anterior(ano, mes)
-    else:
-        ano_base, mes_base = calculos.mesmo_mes_ano_anterior(ano, mes)
-    data_ini_base, data_fim_base = calculos.periodo_equivalente_base(ano_base, mes_base, dias)
 
     mapa_atual = vendas_service.vendas_por_produto(
         grupo_codigos, data_ini_atual, data_fim_atual, metrica=metrica,
@@ -351,3 +365,81 @@ def montar_produtos_setor(
         "periodo_comparativo": {"inicio": data_ini_base.isoformat(), "fim": data_fim_base.isoformat()},
         "grupos": grupos_resultado,
     }
+
+
+def montar_produtos_sem_movimentacao(
+    setor_id: int, ano: int, mes: int, tipo_comparacao: str | None = None, incluir_antigos: bool = False
+) -> dict:
+    """Produtos do setor (cadastro, pelos grupos/subgrupos) sem nenhuma venda no período
+    atual nem no comparativo — os mesmos períodos da tabela de detalhamento por produto.
+    Por padrão só lista quem vendeu nos últimos MESES_JANELA_SEM_MOVIMENTACAO meses;
+    incluir_antigos traz o cadastro ativo inteiro."""
+    setor = setores_service.obter_setor(setor_id)
+    if setor is None:
+        raise ValidationError("Setor não encontrado.", status_code=404)
+
+    tipo_comparacao, periodo_atual, periodo_base = _periodos_produtos(setor_id, ano, mes, tipo_comparacao)
+    vendidos_desde = None if incluir_antigos else _meses_antes(periodo_atual[0], MESES_JANELA_SEM_MOVIMENTACAO)
+    resposta = {
+        "tipo_comparacao": tipo_comparacao,
+        "periodo_atual": {"inicio": periodo_atual[0].isoformat(), "fim": periodo_atual[1].isoformat()},
+        "periodo_comparativo": {"inicio": periodo_base[0].isoformat(), "fim": periodo_base[1].isoformat()},
+        "vendidos_desde": vendidos_desde.isoformat() if vendidos_desde else None,
+        "disponivel": True,
+        "motivo": None,
+        "total": 0,
+        "grupos": [],
+    }
+
+    grupo_codigos = setores_service.obter_grupos_do_setor(setor_id)
+    if not grupo_codigos:
+        resposta["disponivel"] = False
+        resposta["motivo"] = (
+            "Este setor é definido por PDV, não por grupos de produto, então não existe uma lista "
+            "de produtos do setor para comparar."
+        )
+        return resposta
+
+    subgrupos_por_grupo = setores_service.obter_subgrupos_do_setor(setor_id)
+    filtros_pdv = dict(
+        pdv_incluidos=setor["pdv_incluidos"], pdv_excluidos=setor["pdv_excluidos"],
+        dias_semana_excluidos=setor["dias_semana_excluidos"],
+    )
+    com_movimento = set(vendas_service.vendas_por_produto(
+        grupo_codigos, *periodo_atual, subgrupos_por_grupo=subgrupos_por_grupo, **filtros_pdv
+    )) | set(vendas_service.vendas_por_produto(
+        grupo_codigos, *periodo_base, subgrupos_por_grupo=subgrupos_por_grupo, **filtros_pdv
+    ))
+    cadastro = vendas_service.produtos_do_cadastro(grupo_codigos, subgrupos_por_grupo, vendidos_desde=vendidos_desde)
+    grupos_desc = {g["codigo"]: g["descricao"] for g in vendas_service.listar_grupos_disponiveis()}
+
+    produtos_por_grupo: dict = {}
+    for produto in cadastro:
+        if produto["codigo"] in com_movimento:
+            continue
+        produtos_por_grupo.setdefault(produto["grupo_codigo"], []).append({
+            "codigo": produto["codigo"],
+            "nome": produto["nome"],
+            "ultima_venda": produto["ultima_venda"].isoformat() if produto["ultima_venda"] else None,
+        })
+
+    for grupo_codigo, produtos in produtos_por_grupo.items():
+        # quem parou de vender há menos tempo primeiro: costuma ser o caso mais acionável
+        produtos.sort(key=lambda p: p["ultima_venda"] or "", reverse=True)
+        resposta["grupos"].append({
+            "grupo_codigo": grupo_codigo,
+            "descricao": grupos_desc.get(grupo_codigo, f"Grupo {grupo_codigo}") if grupo_codigo is not None else "Sem grupo",
+            "produtos": produtos,
+        })
+    resposta["grupos"].sort(key=lambda g: g["descricao"])
+    resposta["total"] = sum(len(g["produtos"]) for g in resposta["grupos"])
+    return resposta
+
+
+def _meses_antes(data, meses: int):
+    """Primeiro dia do mês que fica `meses` meses antes de `data`."""
+    ano, mes = data.year, data.month - meses
+    while mes < 1:
+        mes += 12
+        ano -= 1
+    return data.replace(year=ano, month=mes, day=1)

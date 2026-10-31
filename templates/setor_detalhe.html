@@ -54,10 +54,16 @@
             <h3 style="margin:0;">Detalhamento de Vendas e Metas por Produto</h3>
             <p class="chart-subtitle" id="produtos-periodo-info" style="margin-bottom:0;">Carregando períodos...</p>
         </div>
-        <button type="button" class="btn btn-sm btn-ghost" id="produtos-exportar-btn" title="Exportar para Excel (.csv)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-            Exportar
-        </button>
+        <div class="flex gap-8">
+            <button type="button" class="btn btn-sm" id="sem-mov-btn" title="Produtos do setor sem venda no período atual nem no comparativo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+                Sem movimentação
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost" id="produtos-exportar-btn" title="Exportar para Excel (.csv)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                Exportar
+            </button>
+        </div>
     </div>
     <div class="flex gap-8" style="flex-wrap:wrap; align-items:center; margin-bottom:14px;">
         <div class="flex gap-8">
@@ -99,8 +105,55 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="sem-mov-modal">
+    <div class="modal-box sem-mov-box">
+        <div class="modal-header">
+            <div>
+                <h2>Produtos sem movimentação</h2>
+                <p class="chart-subtitle" id="sem-mov-periodo" style="margin:4px 0 0;"></p>
+            </div>
+            <button class="btn btn-icon btn-ghost" id="sem-mov-fechar" aria-label="Fechar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="sem-mov-controles">
+                <input type="search" class="input-field" id="sem-mov-busca" placeholder="Buscar por código ou nome">
+                <label class="checkbox-item sem-mov-antigos">
+                    <input type="checkbox" id="sem-mov-antigos">
+                    <span>Incluir produtos sem venda há mais de 12 meses</span>
+                </label>
+            </div>
+            <div class="flex-between" style="margin:10px 0 8px; gap:8px; flex-wrap:wrap;">
+                <span class="text-muted" id="sem-mov-resumo" style="font-size:12.5px;"></span>
+                <button type="button" class="btn btn-sm btn-ghost" id="sem-mov-exportar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    Exportar
+                </button>
+            </div>
+            <div class="data-table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">Cód.</th>
+                            <th>Produto</th>
+                            <th style="text-align:right; width:130px;">Última venda</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sem-mov-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 @media (max-width: 1100px) { .detail-grid { grid-template-columns: 1fr !important; } }
+.sem-mov-box { max-width: 760px; }
+.sem-mov-box .modal-body { overflow-y: auto; }
+.sem-mov-controles { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.sem-mov-controles .input-field { flex: 1 1 240px; }
+.sem-mov-antigos { font-size: 12.5px; }
 </style>
 {% endblock %}
 
@@ -110,4 +163,5 @@
 <script src="{{ url_for('static', filename='js/vendor/chart.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/setor_detalhe.js') }}"></script>
 <script src="{{ url_for('static', filename='js/produtos_setor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/produtos_sem_movimentacao.js') }}"></script>
 {% endblock %}

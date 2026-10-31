@@ -82,6 +82,18 @@ def get_produtos_setor(setor_id):
     return jsonify(dashboard_service.montar_produtos_setor(setor_id, ano, mes, tipo_comparacao, metrica))
 
 
+@api_bp.get("/dashboard/setor/<int:setor_id>/produtos-sem-movimentacao")
+def get_produtos_sem_movimentacao(setor_id):
+    hoje = date.today()
+    ano = _int_arg("ano", hoje.year)
+    mes = _int_arg("mes", hoje.month)
+    tipo_comparacao = request.args.get("tipo_comparacao")
+    incluir_antigos = request.args.get("incluir_antigos") in ("1", "true")
+    return jsonify(dashboard_service.montar_produtos_sem_movimentacao(
+        setor_id, ano, mes, tipo_comparacao, incluir_antigos
+    ))
+
+
 @api_bp.get("/setores")
 def listar_setores():
     apenas_ativos = request.args.get("ativos") == "1"

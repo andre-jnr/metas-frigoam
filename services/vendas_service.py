@@ -313,6 +313,42 @@ def vendas_por_produto(
     }
 
 
+def produtos_do_cadastro(
+    grupo_codigos: list[int],
+    subgrupos_por_grupo: dict[int, list[int]] | None = None,
+    vendidos_desde: date | None = None,
+) -> list[dict]:
+    """Produtos ativos do cadastro nos grupos/subgrupos do setor — base da lista de
+    produtos sem movimentação. vendidos_desde filtra por produto.Data_Ultima_Venda
+    (mantida pelo próprio sismoura), para deixar de fora o cadastro antigo que não vende
+    há tempo. Sem grupos (setor definido só por PDV) não há "produtos do setor": []."""
+    codigos_unicos = sorted(set(grupo_codigos))
+    if not codigos_unicos:
+        return []
+    filtro_grupo, params = _clausula_grupo(codigos_unicos, subgrupos_por_grupo)
+    filtro_data = ""
+    if vendidos_desde is not None:
+        filtro_data = " AND p.Data_Ultima_Venda >= ?"
+        params = params + [vendidos_desde]
+    sql = f"""
+        SELECT p.Codigo AS codigo, p.Nome AS nome, p.Grupo AS grupo_codigo, p.Data_Ultima_Venda AS ultima_venda
+        FROM produto p
+        WHERE ISNULL(p.Inativo, 'N') <> 'S'
+          {filtro_grupo}
+          {filtro_data}
+    """
+    rows = executar_query(sql, tuple(params))
+    return [
+        {
+            "codigo": int(r["codigo"]),
+            "nome": r["nome"] or f"Produto {r['codigo']}",
+            "grupo_codigo": int(r["grupo_codigo"]) if r["grupo_codigo"] is not None else None,
+            "ultima_venda": r["ultima_venda"].date() if r["ultima_venda"] is not None else None,
+        }
+        for r in rows
+    ]
+
+
 def listar_grupos_disponiveis() -> list[dict]:
     """Todos os grupos de produto cadastrados no SQL Server, para a tela de setores."""
     sql = "SELECT Codigo AS codigo, Descricao AS descricao FROM Grupo_Produto ORDER BY Descricao"

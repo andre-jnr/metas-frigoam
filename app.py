@@ -12,6 +12,7 @@ from config import Config
 from database.sql_server import SqlServerError
 from database.sqlite import init_db
 from rede import porta_disponivel, resolver_porta
+from services import auth_service
 from services.errors import ValidationError
 
 
@@ -37,17 +38,30 @@ def create_app() -> Flask:
     app.json.sort_keys = False
 
     init_db()
+    app.config.update(
+        SECRET_KEY=auth_service.chave_secreta(),
+        PERMANENT_SESSION_LIFETIME=auth_service.DURACAO_SESSAO,
+        SESSION_REFRESH_EACH_REQUEST=False,  # 8 horas a partir do login, não da última página
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+    )
+    if not auth_service.garantir_superusuario():
+        logger.warning("ADMIN_USUARIO/ADMIN_SENHA não definidos no .env: ninguém consegue entrar no sistema.")
     logger.info("Aplicação inicializada.")
 
     from routes.api import api_bp
+    from routes.auth import auth_bp
     from routes.dashboard import dashboard_bp
     from routes.metas import metas_bp
     from routes.setores import setores_bp
+    from routes.usuarios import usuarios_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(setores_bp)
     app.register_blueprint(metas_bp)
     app.register_blueprint(api_bp)
+    app.register_blueprint(usuarios_bp)
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(err: ValidationError):

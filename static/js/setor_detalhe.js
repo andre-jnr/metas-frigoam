@@ -42,6 +42,13 @@
         gaugeContainer.parentElement.appendChild(statusEl);
 
         var dif = Number(dados.diferenca);
+        if (dados.somente_percentual) {
+            heroMetrics.innerHTML =
+                metricBlock("Meta realizada", Fmt.pct(dados.percentual_realizado)) +
+                metricBlock("Esperado até hoje", Fmt.pct(dados.percentual_esperado)) +
+                metricBlock("Diferença", Fmt.pp(dif), dif >= 0 ? "positive" : "negative");
+            return;
+        }
         heroMetrics.innerHTML =
             metricBlock("Meta do mês", '<span class="money-value">' + Fmt.brl(dados.meta_final) + "</span>") +
             metricBlock("Venda realizada", '<span class="money-value">' + Fmt.brl(dados.venda_realizada) + "</span>") +
@@ -53,11 +60,16 @@
         return '<div class="metric-block"><div class="label">' + label + '</div><div class="value ' + (cls || "") + '">' + value + "</div></div>";
     }
 
-    function renderChart(evolucao) {
-        var ctx = document.getElementById("evolucao-chart").getContext("2d");
+    function renderChart(evolucao, somentePercentual) {
+        var canvas = document.getElementById("evolucao-chart");
+        var ctx = canvas.getContext("2d");
         var labels = evolucao.map(function (d) { return d.dia.slice(8, 10); });
-        var acumulado = evolucao.map(function (d) { return Number(d.acumulado); });
-        var metaAcumulada = evolucao.map(function (d) { return Number(d.meta_acumulada); });
+        // quem só vê porcentagens recebe a evolução já em % da meta do mês
+        var acumulado = evolucao.map(function (d) { return Number(somentePercentual ? d.acumulado_pct : d.acumulado); });
+        var metaAcumulada = evolucao.map(function (d) { return Number(somentePercentual ? d.meta_acumulada_pct : d.meta_acumulada); });
+        var formatar = somentePercentual ? function (v) { return Fmt.pct(v); } : function (v) { return Fmt.brl(v); };
+        var formatarEixo = somentePercentual ? function (v) { return Fmt.pct(v, 0); } : function (v) { return Fmt.brlCompact(v); };
+        canvas.parentElement.classList.toggle("money-value", !somentePercentual);
 
         if (chartInstance) chartInstance.destroy();
         var corTexto = getComputedStyle(document.documentElement).getPropertyValue("--text-secondary").trim() || "#9aa5b8";
@@ -99,39 +111,53 @@
                     legend: { labels: { color: corTexto, usePointStyle: true, boxWidth: 8 } },
                     tooltip: {
                         callbacks: {
-                            label: function (item) { return item.dataset.label + ": " + Fmt.brl(item.parsed.y); },
+                            label: function (item) { return item.dataset.label + ": " + formatar(item.parsed.y); },
                         },
                     },
                 },
                 scales: {
                     x: { grid: { color: corGrid }, ticks: { color: corTexto } },
-                    y: { grid: { color: corGrid }, ticks: { color: corTexto, callback: function (v) { return Fmt.brlCompact(v); } } },
+                    y: { grid: { color: corGrid }, ticks: { color: corTexto, callback: formatarEixo } },
                 },
             },
         });
     }
 
-    function renderRanking(ranking) {
+    function renderRanking(ranking, somentePercentual) {
         rankingList.innerHTML = "";
         if (!ranking.length) {
             rankingList.innerHTML = '<div class="text-muted">Nenhum grupo com venda no período.</div>';
             return;
         }
-        var max = Math.max.apply(null, ranking.map(function (r) { return Number(r.total); }));
+        var valorDe = function (r) { return Number(somentePercentual ? r.participacao_pct : r.total); };
+        var max = Math.max.apply(null, ranking.map(valorDe));
         ranking.forEach(function (r) {
             var row = document.createElement("div");
             row.className = "ranking-row";
-            var pct = max > 0 ? (Number(r.total) / max) * 100 : 0;
+            var pct = max > 0 ? (valorDe(r) / max) * 100 : 0;
             row.innerHTML =
                 '<div class="ranking-name">' + r.descricao + '</div>' +
                 '<div class="ranking-bar-track"><div class="ranking-bar-fill" style="width:0%"></div></div>' +
-                '<div class="ranking-value money-value">' + Fmt.brlCompact(r.total) + "</div>";
+                (somentePercentual
+                    ? '<div class="ranking-value">' + Fmt.pct(r.participacao_pct) + "</div>"
+                    : '<div class="ranking-value money-value">' + Fmt.brlCompact(r.total) + "</div>");
             rankingList.appendChild(row);
             requestAnimationFrame(function () { row.querySelector(".ranking-bar-fill").style.width = pct + "%"; });
         });
     }
 
     function renderComparacao(dados) {
+        if (dados.somente_percentual) {
+            var cardPct = function (label, variacao) {
+                var texto = variacao == null ? "—" : (Number(variacao) >= 0 ? "+" : "") + Fmt.pct(variacao);
+                var cor = variacao == null ? "var(--text-muted)" : Number(variacao) >= 0 ? "var(--success)" : "var(--danger)";
+                return '<div class="surface-card compare-card"><div class="label">' + label + '</div><div class="value" style="color:' + cor + '">' + texto + '</div><div class="delta text-muted">variação das vendas neste período</div></div>';
+            };
+            compareGrid.innerHTML =
+                cardPct("Contra o mês anterior", dados.comparacao.variacao_mes_anterior_pct) +
+                cardPct("Contra o mesmo mês do ano anterior", dados.comparacao.variacao_mesmo_mes_ano_anterior_pct);
+            return;
+        }
         var vendaAtual = Number(dados.venda_realizada);
         var vendaMesAnterior = Number(dados.comparacao.venda_mes_anterior);
         var vendaAnoAnterior = Number(dados.comparacao.venda_mesmo_mes_ano_anterior);
@@ -153,8 +179,8 @@
         try {
             var dados = await apiFetch("/api/dashboard/setor/" + window.DM_CONFIG.setorId + "?ano=" + ano + "&mes=" + mes);
             renderHero(dados);
-            renderChart(dados.evolucao_diaria);
-            renderRanking(dados.ranking_grupos);
+            renderChart(dados.evolucao_diaria, !!dados.somente_percentual);
+            renderRanking(dados.ranking_grupos, !!dados.somente_percentual);
             renderComparacao(dados);
         } catch (e) {
             heroMetrics.innerHTML = '<div class="text-muted">Não foi possível carregar os dados deste setor.</div>';

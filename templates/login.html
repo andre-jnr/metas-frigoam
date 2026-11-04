@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrar · Metas por Setor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b8cff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M18.7 8 12 14.7l-3.5-3.5L3 16.7'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+<script>
+(function () {
+    try {
+        var salvo = localStorage.getItem('dm_theme');
+        if (salvo) document.documentElement.setAttribute('data-theme', salvo);
+    } catch (e) { /* sem localStorage: segue o tema do sistema */ }
+})();
+</script>
+</head>
+<body class="login-body">
+<div class="login-fundo" aria-hidden="true"></div>
+
+<main class="login-shell">
+    <section class="login-marca">
+        <div class="login-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8 12 14.7l-3.5-3.5L3 16.7"/></svg>
+        </div>
+        <h1>Metas por Setor</h1>
+        <p>Acompanhe vendas e metas de cada setor em tempo real, com a comparação do período anterior lado a lado.</p>
+
+        <div class="login-ilustracao" aria-hidden="true">
+            <svg viewBox="0 0 220 130" fill="none">
+                <path d="M20 115a90 90 0 0 1 180 0" stroke="var(--border)" stroke-width="12" stroke-linecap="round"/>
+                <path class="login-arco" d="M20 115a90 90 0 0 1 160-56" stroke="url(#login-grad)" stroke-width="12" stroke-linecap="round"/>
+                <circle cx="110" cy="115" r="6" fill="var(--text-primary)"/>
+                <path class="login-ponteiro" d="M110 115 170 70" stroke="var(--text-primary)" stroke-width="3" stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="login-grad" x1="20" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#5b8cff"/><stop offset="1" stop-color="#35d399"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <div class="login-kpis">
+                <span><strong>Meta</strong> por setor</span>
+                <span><strong>Produtos</strong> em detalhe</span>
+                <span><strong>Escada</strong> automática</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="login-card" aria-labelledby="login-titulo">
+        <h2 id="login-titulo">Entrar</h2>
+        <p class="login-sub">Use seu usuário e senha para acessar o sistema.</p>
+
+        {% if sem_usuario %}
+        <div class="login-alerta aviso" role="status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <span>Nenhum usuário configurado. Defina <strong>ADMIN_USUARIO</strong> e <strong>ADMIN_SENHA</strong> no arquivo .env e reinicie o sistema.</span>
+        </div>
+        {% endif %}
+
+        {% if erro %}
+        <div class="login-alerta erro" role="alert" id="login-erro">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            <span>{{ erro }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('auth.login') }}" id="login-form" novalidate>
+            <input type="hidden" name="next" value="{{ destino }}">
+
+            <div class="field-group">
+                <label for="usuario">Usuário</label>
+                <div class="login-campo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                    <input class="input-field" type="text" id="usuario" name="usuario" value="{{ usuario }}"
+                           autocomplete="username" autocapitalize="none" spellcheck="false" required
+                           {% if not usuario %}autofocus{% endif %}>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="senha">Senha</label>
+                <div class="login-campo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                    <input class="input-field" type="password" id="senha" name="senha"
+                           autocomplete="current-password" required {% if usuario %}autofocus{% endif %}>
+                    <button type="button" class="login-olho" id="login-olho" aria-label="Mostrar senha" aria-pressed="false">
+                        <svg class="olho-aberto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <svg class="olho-fechado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61C3.06 8.9 1 12 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+                    </button>
+                </div>
+                <span class="field-hint login-caps" id="login-caps" hidden>Caps Lock está ativado.</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary login-entrar" id="login-entrar">
+                <span class="login-spinner" aria-hidden="true"></span>
+                <span class="login-entrar-texto">Entrar</span>
+            </button>
+        </form>
+
+        <p class="login-rodape">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            A sessão fica aberta por {{ horas_sessao }} horas.
+        </p>
+    </section>
+</main>
+
+<script>
+(function () {
+    var senha = document.getElementById("senha");
+    var olho = document.getElementById("login-olho");
+    var caps = document.getElementById("login-caps");
+    var form = document.getElementById("login-form");
+    var botao = document.getElementById("login-entrar");
+
+    olho.addEventListener("click", function () {
+        var mostrar = senha.type === "password";
+        senha.type = mostrar ? "text" : "password";
+        olho.setAttribute("aria-pressed", mostrar ? "true" : "false");
+        olho.setAttribute("aria-label", mostrar ? "Esconder senha" : "Mostrar senha");
+        olho.classList.toggle("ativo", mostrar);
+        senha.focus();
+    });
+
+    function avisarCaps(ev) {
+        if (ev.getModifierState) caps.hidden = !ev.getModifierState("CapsLock");
+    }
+    senha.addEventListener("keydown", avisarCaps);
+    senha.addEventListener("keyup", avisarCaps);
+    senha.addEventListener("blur", function () { caps.hidden = true; });
+
+    form.addEventListener("submit", function (ev) {
+        var usuario = document.getElementById("usuario");
+        if (!usuario.value.trim()) { ev.preventDefault(); usuario.focus(); return; }
+        if (!senha.value) { ev.preventDefault(); senha.focus(); return; }
+        botao.classList.add("carregando");
+        botao.disabled = true;
+    });
+
+    // Voltar pelo histórico depois de enviar não pode deixar o botão travado
+    window.addEventListener("pageshow", function () {
+        botao.classList.remove("carregando");
+        botao.disabled = false;
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Usuários{% endblock %}
+{% block page_title %}Usuários{% endblock %}
+{% block page_subtitle %}<p>Quem pode entrar no sistema e o que cada um vê</p>{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn btn-primary" id="btn-novo-usuario">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+    Novo usuário
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Usuário</th>
+                <th>Perfil</th>
+                <th>O que vê</th>
+                <th>Status</th>
+                <th>Criado em</th>
+                <th style="text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="usuarios-tbody"></tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="usuario-modal">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-header">
+            <h2 id="usuario-modal-titulo">Novo usuário</h2>
+            <button class="btn btn-icon btn-ghost" id="usuario-modal-fechar" aria-label="Fechar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form class="modal-body" id="usuario-form" autocomplete="off">
+            <input type="hidden" id="usuario-id">
+            <div class="field-group">
+                <label for="usuario-nome">Usuário</label>
+                <input class="input-field" id="usuario-nome" maxlength="30" autocapitalize="none" spellcheck="false" placeholder="ex.: maria.silva">
+                <span class="field-hint">De 3 a 30 caracteres: letras sem acento, números, ponto, hífen ou _.</span>
+            </div>
+            <div class="field-group">
+                <label for="usuario-senha" id="usuario-senha-label">Senha</label>
+                <input class="input-field" type="password" id="usuario-senha" autocomplete="new-password">
+                <span class="field-hint" id="usuario-senha-hint">Pelo menos 6 caracteres.</span>
+            </div>
+
+            <label class="usuario-opcao">
+                <input type="checkbox" id="usuario-valores">
+                <span>
+                    <strong>Pode ver valores em R$</strong>
+                    <small>Desmarcado, o usuário vê só porcentagens: some o Dashboard por Valor e o cadastro de Metas,
+                        o detalhe do setor mostra apenas % e os produtos aparecem só por quantidade.</small>
+                </span>
+            </label>
+            <label class="usuario-opcao">
+                <input type="checkbox" id="usuario-super">
+                <span>
+                    <strong>Superusuário</strong>
+                    <small>Pode cadastrar usuários e fazer backup. Superusuário sempre vê valores.</small>
+                </span>
+            </label>
+            <label class="usuario-opcao" id="usuario-ativo-wrap">
+                <input type="checkbox" id="usuario-ativo" checked>
+                <span>
+                    <strong>Ativo</strong>
+                    <small>Desmarcado, o usuário não consegue entrar e a sessão aberta é encerrada.</small>
+                </span>
+            </label>
+        </form>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="usuario-modal-cancelar">Cancelar</button>
+            <button class="btn btn-primary" id="usuario-modal-salvar">Salvar</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-header"><h2>Excluir usuário</h2></div>
+        <div class="modal-body"><p id="confirm-modal-texto" class="mt-0"></p></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" id="confirm-modal-cancelar">Cancelar</button>
+            <button class="btn btn-danger" id="confirm-modal-ok">Excluir</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.usuario-opcao {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 11px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+.usuario-opcao input { margin-top: 3px; accent-color: var(--accent); }
+.usuario-opcao strong { display: block; font-size: 13px; }
+.usuario-opcao small { display: block; color: var(--text-muted); font-size: 11.5px; line-height: 1.45; margin-top: 2px; }
+.usuario-opcao.desabilitada { opacity: 0.55; cursor: not-allowed; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/usuarios.js') }}"></script>
+{% endblock %}

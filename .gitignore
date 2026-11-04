@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 data/*.db
+data/secret_key
 logs/*.log
 .pytest_cache/
 servidor/.node

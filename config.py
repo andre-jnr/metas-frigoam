@@ -57,6 +57,12 @@ class Config:
 
     CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "120"))
 
+    # Login: superusuário definido no .env (a senha nunca fica no código). SECRET_KEY
+    # assina o cookie de sessão; sem ela no .env, uma chave é gerada em data/secret_key.
+    ADMIN_USUARIO = os.getenv("ADMIN_USUARIO", "")
+    ADMIN_SENHA = os.getenv("ADMIN_SENHA", "")
+    SECRET_KEY = os.getenv("SECRET_KEY", "")
+
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     # PORT é o padrão dos sistemas publicados no servidor (3002 = Metas na tabela de
     # orientacoes-projetos-ia.md). É a mesma variável que servidor/instalar.ps1 lê do .env.

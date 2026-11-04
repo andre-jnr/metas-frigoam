@@ -32,14 +32,14 @@
 
 <div class="surface-card chart-card">
     <h3>Evolução das vendas</h3>
-    <p class="chart-subtitle">Venda acumulada x Meta acumulada ao longo do mês</p>
+    <p class="chart-subtitle">Venda acumulada x Meta acumulada ao longo do mês{% if not pode_ver_valores %} (em % da meta do mês){% endif %}</p>
     <div class="chart-canvas-wrap money-value"><canvas id="evolucao-chart"></canvas></div>
 </div>
 
 <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px;" class="detail-grid">
     <div class="surface-card chart-card">
         <h3>Grupos do setor</h3>
-        <p class="chart-subtitle">Ranking de faturamento por grupo de produto</p>
+        <p class="chart-subtitle">{% if pode_ver_valores %}Ranking de faturamento por grupo de produto{% else %}Participação de cada grupo na venda do setor{% endif %}</p>
         <div class="ranking-list" id="ranking-list"></div>
     </div>
     <div>
@@ -70,7 +70,7 @@
             <button type="button" class="btn btn-sm produtos-view-btn" data-view="grupo">Por Grupo</button>
             <button type="button" class="btn btn-sm produtos-view-btn" data-view="flat">Todos os Produtos</button>
         </div>
-        <div class="flex gap-8">
+        <div class="flex gap-8"{% if not pode_ver_valores %} hidden{% endif %}>
             <button type="button" class="btn btn-sm produtos-metrica-btn" data-metrica="valor">Valor</button>
             <button type="button" class="btn btn-sm produtos-metrica-btn" data-metrica="quantidade">Quantidade</button>
         </div>

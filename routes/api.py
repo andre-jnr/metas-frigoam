@@ -1,12 +1,12 @@
 from datetime import date, datetime
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, g, jsonify, request
 
 from database.sql_server import testar_conexao
 from database.sqlite import get_connection
 from services import (
     backup_service, dashboard_service, filiais_service, metas_automaticas_service, metas_service,
-    setores_service, vendas_service,
+    permissoes, setores_service, vendas_service,
 )
 from services.errors import ValidationError
 
@@ -61,7 +61,10 @@ def get_dashboard():
     ano = _int_arg("ano", hoje.year)
     mes = _int_arg("mes", hoje.month)
     refresh = request.args.get("refresh") in ("1", "true", "True")
-    return jsonify(dashboard_service.montar_dashboard(ano, mes, force_refresh=refresh))
+    dados = dashboard_service.montar_dashboard(ano, mes, force_refresh=refresh)
+    if not g.pode_ver_valores:
+        dados = permissoes.dashboard_sem_valores(dados)
+    return jsonify(dados)
 
 
 @api_bp.get("/dashboard/setor/<int:setor_id>")
@@ -69,7 +72,10 @@ def get_dashboard_setor(setor_id):
     hoje = date.today()
     ano = _int_arg("ano", hoje.year)
     mes = _int_arg("mes", hoje.month)
-    return jsonify(dashboard_service.montar_dashboard_setor(setor_id, ano, mes))
+    dados = dashboard_service.montar_dashboard_setor(setor_id, ano, mes)
+    if not g.pode_ver_valores:
+        dados = permissoes.setor_sem_valores(dados)
+    return jsonify(dados)
 
 
 @api_bp.get("/dashboard/setor/<int:setor_id>/produtos")
@@ -79,6 +85,8 @@ def get_produtos_setor(setor_id):
     mes = _int_arg("mes", hoje.month)
     tipo_comparacao = request.args.get("tipo_comparacao")
     metrica = request.args.get("metrica", "valor")
+    if not g.pode_ver_valores:
+        metrica = "quantidade"  # quem só vê porcentagens vê os produtos apenas por quantidade
     return jsonify(dashboard_service.montar_produtos_setor(setor_id, ano, mes, tipo_comparacao, metrica))
 
 

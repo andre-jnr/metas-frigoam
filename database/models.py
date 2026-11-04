@@ -35,6 +35,11 @@ MIGRACOES_SETORES = [
 
 # automatica_motivo: por que a meta automática ficou nesse degrau — INICIO (primeiro mês da
 # regra), BATEU / NAO_BATEU (resultado da meta do mês anterior).
+# pode_ver_valores = 0: o usuário só vê porcentagens (sem R$ em nenhuma tela nem na API).
+MIGRACOES_USUARIOS = [
+    "ALTER TABLE usuarios ADD COLUMN pode_ver_valores INTEGER NOT NULL DEFAULT 1",
+]
+
 MIGRACOES_METAS = [
     "ALTER TABLE metas ADD COLUMN automatica INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE metas ADD COLUMN automatica_motivo TEXT",
@@ -98,6 +103,20 @@ CREATE TABLE IF NOT EXISTS metas_automaticas (
 );
 """
 
+# Usuários do login. Só o hash da senha é gravado; o superusuário vem do .env
+# (ADMIN_USUARIO / ADMIN_SENHA) e fica fora do backup.
+DDL_USUARIOS = """
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario TEXT NOT NULL UNIQUE,
+    senha_hash TEXT NOT NULL,
+    superusuario INTEGER NOT NULL DEFAULT 0,
+    ativo INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+"""
+
 DDL_INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_setor_grupo_setor ON setor_grupo(setor_id);
 CREATE INDEX IF NOT EXISTS idx_setor_subgrupo_setor ON setor_subgrupo(setor_id);
@@ -106,7 +125,7 @@ CREATE INDEX IF NOT EXISTS idx_metas_setor ON metas(setor_id);
 """
 
 ALL_DDL = [
-    DDL_SETORES, DDL_APP_CONFIG, DDL_SETOR_GRUPO, DDL_SETOR_SUBGRUPO, DDL_METAS, DDL_METAS_AUTOMATICAS, DDL_INDEXES,
+    DDL_SETORES, DDL_APP_CONFIG, DDL_SETOR_GRUPO, DDL_SETOR_SUBGRUPO, DDL_METAS, DDL_METAS_AUTOMATICAS, DDL_USUARIOS, DDL_INDEXES,
 ]
 
 TIPOS_META = ("PERCENTUAL", "VALOR_FIXO")

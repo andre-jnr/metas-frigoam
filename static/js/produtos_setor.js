@@ -24,7 +24,8 @@
     var estado = {
         dados: null,
         viewMode: "grupo",
-        metrica: "valor",
+        // quem só vê porcentagens vê os produtos apenas por quantidade (o servidor também força isso)
+        metrica: window.DM_USUARIO && !window.DM_USUARIO.podeVerValores ? "quantidade" : "valor",
         gruposExpandidos: new Set(),
         sortCol: "venda_atual",
         sortDir: "desc",

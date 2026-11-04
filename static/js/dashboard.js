@@ -127,11 +127,13 @@
 
         var metrics = document.createElement("div");
         metrics.className = "setor-card-metrics";
-        metrics.innerHTML =
+        var linhaValores = window.DM_USUARIO && !window.DM_USUARIO.podeVerValores ? "" :
             '<div class="metrics-row metrics-row-money">' +
             '<div><div class="metric-label">Realizado</div><div class="metric-value">' + Fmt.brlCompact(setor.venda_realizada) + "</div></div>" +
             '<div><div class="metric-label">Meta</div><div class="metric-value">' + Fmt.brlCompact(setor.meta_final) + "</div></div>" +
-            "</div>" +
+            "</div>";
+        metrics.innerHTML =
+            linhaValores +
             '<div class="metrics-row">' +
             '<div><div class="metric-label">Esperado hoje</div><div class="metric-value">' + esperadoTexto + "</div></div>" +
             '<div><div class="metric-label">Diferença</div><div class="metric-value ' + (diferencaPositiva ? "positive" : "negative") + '">' + diferencaTexto + "</div></div>" +

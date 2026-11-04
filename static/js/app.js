@@ -133,6 +133,14 @@ async function apiFetch(url, options) {
         Toast.error("Não foi possível conectar ao servidor. Verifique se o sistema está em execução.");
         throw err;
     }
+    if (resp.status === 401) {
+        // sessão de 8 horas acabou: volta para o login e depois para esta mesma página
+        Toast.warning("Sua sessão expirou. Entre novamente.");
+        setTimeout(function () {
+            location.href = "/login?next=" + encodeURIComponent(location.pathname + location.search);
+        }, 900);
+        throw new Error("Sessão expirada");
+    }
     if (resp.status === 204) return null;
     var data = null;
     try { data = await resp.json(); } catch (e) { /* corpo vazio */ }

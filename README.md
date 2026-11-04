@@ -71,6 +71,8 @@ FLASK_DEBUG=false
 |---|---|
 | `SQL_SERVER` | Endereço/nome do servidor SQL Server. |
 | `FILIAIS_ATIVAS` | Unidades que aparecem no seletor (`pn`, `prq10`, `ad`), separadas por vírgula; a primeira é a padrão. Vazio = todas. Ex.: `FILIAIS_ATIVAS=pn` num servidor que só atende Ponta Negra. |
+| `ADMIN_USUARIO` / `ADMIN_SENHA` | Superusuário do login. É criado (ou tem a senha atualizada) ao iniciar o sistema; trocar a senha aqui encerra as sessões abertas. A sessão dura 8 horas a partir do login. Os demais usuários são cadastrados pelo superusuário na aba **Usuários**, com a opção de ver só porcentagens (sem R$ em nenhuma tela nem na API). |
+| `SECRET_KEY` | Opcional. Chave que assina o cookie de sessão; se ficar vazia, é gerada sozinha em `data/secret_key`. |
 | `SQL_DATABASE` | Nome do banco de dados (`sismoura`). |
 | `SQL_USERNAME` / `SQL_PASSWORD` | Credenciais de acesso. |
 | `CACHE_TTL_SECONDS` | Tempo (segundos) que o dashboard fica em cache antes de recalcular. |
@@ -91,7 +93,8 @@ seções abaixo, ajuste as consultas em `services/vendas_service.py` — são o
 1. Copie a pasta do projeto para o servidor (pode copiar junto a pasta `data\` para levar
    os setores e metas, ou importar um backup depois em **Configurações > Backup dos dados**).
 2. Tenha o Python 3.10+ instalado.
-3. Crie o `.env` a partir do `.env.example` (com `PORT=3002` e a senha do SQL Server).
+3. Crie o `.env` a partir do `.env.example` (com `PORT=3002`, a senha do SQL Server e o
+   login `ADMIN_USUARIO` / `ADMIN_SENHA`; sem eles ninguém consegue entrar no sistema).
 4. Clique duas vezes em `servidor\instalar.bat` e confirme o pedido de administrador.
 
 Sobe sozinho ao ligar o computador (tarefa agendada "Metas (3002)"), reinicia se cair,

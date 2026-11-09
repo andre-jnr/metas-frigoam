@@ -1,10 +1,14 @@
 # Publica no servidor da empresa a cada push na main.
 #
-# Roda num runner self-hosted instalado no próprio servidor (servidor\instalar-runner.bat):
+# Roda num runner self-hosted instalado em cada servidor (servidor\instalar-runner.bat):
 # o runner só faz conexões de saída para o GitHub, então nenhuma porta precisa ser aberta.
+# O instalador do runner grava a pasta do sistema daquele servidor (PASTA_SISTEMA).
 #
-# Configuração única no GitHub (Settings > Secrets and variables > Actions > Variables):
-#   PASTA_SISTEMA = pasta onde o sistema está instalado no servidor (ex.: C:\sistemas\metas)
+# Vários servidores: liste os nomes dados no instalador do runner na variável do GitHub
+# (Settings > Secrets and variables > Actions > Variables):
+#   SERVIDORES_METAS = ["pn", "ad"]
+# Sem a variável, publica só no servidor "principal". Cada servidor tem seu próprio deploy:
+# se um estiver desligado, os outros são atualizados normalmente.
 #
 # A cópia nunca mexe em .env, data\, logs\ e .venv\ da pasta do sistema, e não apaga nada lá.
 name: Deploy no servidor
@@ -14,20 +18,22 @@ on:
     branches: [main]
   workflow_dispatch: # botão "Run workflow" para publicar manualmente
 
-# Um deploy de cada vez; um push no meio espera o anterior terminar.
-concurrency:
-  group: deploy-servidor-metas
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    runs-on: [self-hosted, windows, servidor-metas]
+    name: Deploy (${{ matrix.servidor }})
+    strategy:
+      fail-fast: false # um servidor com problema não cancela o deploy dos outros
+      matrix:
+        servidor: ${{ fromJSON(vars.SERVIDORES_METAS || '["principal"]') }}
+    runs-on: [self-hosted, windows, "metas-${{ matrix.servidor }}"]
+    # Um deploy de cada vez por servidor; um push no meio espera o anterior terminar.
+    concurrency:
+      group: deploy-metas-${{ matrix.servidor }}
+      cancel-in-progress: false
     timeout-minutes: 30
     defaults:
       run:
         shell: powershell
-    env:
-      PASTA_SISTEMA: ${{ vars.PASTA_SISTEMA }}
 
     steps:
       - name: Baixar o código
@@ -36,7 +42,7 @@ jobs:
       - name: Conferir a pasta do sistema
         run: |
           if (-not $env:PASTA_SISTEMA) {
-            throw "Defina a variável PASTA_SISTEMA em Settings > Secrets and variables > Actions > Variables."
+            throw "Este runner não sabe a pasta do sistema. Rode de novo servidor\instalar-runner.bat neste servidor."
           }
           if (-not (Test-Path (Join-Path $env:PASTA_SISTEMA ".env"))) {
             throw "Não achei o .env em $env:PASTA_SISTEMA. Instale o sistema uma vez com servidor\instalar.bat antes do deploy automático."

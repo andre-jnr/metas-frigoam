@@ -111,14 +111,22 @@ Depois da primeira instalação, cada push na `main` publica no servidor sozinho
 (`.github/workflows/deploy-servidor.yml`). O workflow roda no próprio servidor, por um
 runner self-hosted que só faz conexões de saída para o GitHub (nenhuma porta aberta).
 
-Configuração (uma vez só):
+Configuração, em **cada servidor** (uma vez só):
 
-1. No GitHub: **Settings > Actions > Runners > New self-hosted runner** (Windows) e copie o
-   valor depois de `--token` (vale por 1 hora).
-2. No servidor: clique duas vezes em `servidor\instalar-runner.bat`, confirme o pedido de
-   administrador e cole o token. O runner vira um serviço do Windows (conta SYSTEM).
-3. No GitHub: **Settings > Secrets and variables > Actions > Variables**, crie
-   `PASTA_SISTEMA` com a pasta do sistema no servidor (ex.: `C:\sistemas\metas`).
+1. Instale o sistema normalmente (`servidor\instalar.bat`, com o `.env` daquele servidor).
+2. No GitHub: **Settings > Actions > Runners > New self-hosted runner** (Windows) e copie o
+   valor depois de `--token` (vale por 1 hora; gere um novo para cada servidor).
+3. No servidor: clique duas vezes em `servidor\instalar-runner.bat`, confirme o pedido de
+   administrador, cole o token e dê um **nome** ao servidor (ex.: `pn`, `prq10`, `ad`; com
+   um servidor só, deixe vazio e ele vira `principal`). O runner vira um serviço do Windows
+   (conta SYSTEM) e guarda a pasta do sistema daquele servidor.
+
+E uma vez no GitHub, com mais de um servidor: **Settings > Secrets and variables > Actions >
+Variables**, crie `SERVIDORES_METAS` com a lista de nomes, no formato `["pn", "ad"]`. Para
+incluir um servidor depois, instale o runner nele e acrescente o nome na lista.
+
+Cada servidor recebe seu próprio deploy, ao mesmo tempo. Se um estiver desligado, o deploy
+dele fica na fila (até 24 horas) e os outros são atualizados normalmente.
 
 A cada push o workflow roda os testes, faz backup do banco em `dataackups` (guarda os 15
 mais recentes), copia o código novo e roda o `servidor\instalar.ps1`, que reinicia o sistema

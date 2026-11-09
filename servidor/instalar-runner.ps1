@@ -7,16 +7,19 @@
 #   GitHub > repositório > Settings > Actions > Runners > New self-hosted runner (Windows)
 #   copie o valor que aparece depois de "--token" (vale por 1 hora).
 #
+# Vários servidores: rode este script em cada um, com um nome diferente para cada
+# (ex.: pn, prq10, ad) e liste os nomes na variável SERVIDORES_METAS do GitHub.
+#
 # Pode ser rodado de novo: substitui o runner anterior com o mesmo nome.
 
-param([string]$Token)
+param([string]$Token, [string]$Servidor)
 
 $ErrorActionPreference = "Stop"
 
 $REPO_URL     = "https://github.com/andre-jnr/metas-frigoam"
 $PASTA_RUNNER = "C:\actions-runner\metas"
-$ROTULO       = "servidor-metas"   # o workflow roda só em runners com este rótulo
-$NOME         = "$env:COMPUTERNAME-metas"
+# a pasta do sistema é a pasta acima de servidor\ (onde este script está)
+$PASTA_SISTEMA = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 function Passo($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 function Ok($msg)    { Write-Host "    OK  $msg" -ForegroundColor Green }
@@ -31,6 +34,18 @@ if (-not $Token) {
     $Token = (Read-Host "Token").Trim()
 }
 if (-not $Token) { Falha "sem token não dá para registrar o runner." }
+
+if (-not $Servidor) {
+    Write-Host "`nNome deste servidor no deploy (letras minúsculas e números, ex.: pn, prq10, ad)."
+    Write-Host "Use o mesmo nome na variável SERVIDORES_METAS do GitHub. Só um servidor? Deixe vazio (= principal)."
+    $Servidor = (Read-Host "Nome").Trim().ToLower()
+    if (-not $Servidor) { $Servidor = "principal" }
+}
+$Servidor = $Servidor.Trim().ToLower()
+if ($Servidor -notmatch "^[a-z0-9-]{1,20}$") { Falha "nome '$Servidor' inválido: use só letras minúsculas, números e hífen." }
+$ROTULO = "metas-$Servidor"   # o workflow manda o deploy de cada servidor para o runner com este rótulo
+$NOME   = "$env:COMPUTERNAME-metas-$Servidor"
+Write-Host "Servidor '$Servidor' -> pasta do sistema: $PASTA_SISTEMA"
 
 Passo "Preparando a pasta $PASTA_RUNNER"
 New-Item -ItemType Directory -Force $PASTA_RUNNER | Out-Null
@@ -62,6 +77,10 @@ if (-not (Test-Path ".\config.cmd")) {
     Ok "runner $($release.tag_name)"
 }
 
+# O runner lê este .env ao iniciar: cada servidor sabe a própria pasta do sistema
+Set-Content -Path (Join-Path $PASTA_RUNNER ".env") -Value "PASTA_SISTEMA=$PASTA_SISTEMA" -Encoding ASCII
+Ok "PASTA_SISTEMA=$PASTA_SISTEMA"
+
 Passo "Registrando no GitHub e instalando como serviço"
 # Conta SYSTEM: o deploy precisa de administrador para parar/reiniciar a tarefa agendada do sistema
 & .\config.cmd --unattended --url $REPO_URL --token $Token --name $NOME --labels $ROTULO `
@@ -72,7 +91,7 @@ $servico = Get-Service "actions.runner.*" -ErrorAction SilentlyContinue | Where-
 if (-not $servico -or $servico.Status -ne "Running") { Falha "o serviço do runner não está rodando. Confira em services.msc." }
 Ok "serviço '$($servico.Name)' rodando (inicia sozinho com o Windows)"
 
-Write-Host "`nPronto! Falta só uma configuração no GitHub:" -ForegroundColor Green
-Write-Host "  Settings > Secrets and variables > Actions > Variables > New repository variable"
-Write-Host "  Nome: PASTA_SISTEMA   Valor: a pasta do sistema neste servidor (ex.: $((Resolve-Path "$PSScriptRoot\..").Path))"
-Write-Host "Depois disso, cada push na main publica aqui sozinho. Acompanhe em GitHub > Actions."
+Write-Host "`nPronto! Runner '$NOME' instalado com o rótulo '$ROTULO'." -ForegroundColor Green
+Write-Host "No GitHub (Settings > Secrets and variables > Actions > Variables), a variável"
+Write-Host "SERVIDORES_METAS precisa conter '$Servidor'. Ex.: [""pn"", ""ad""]  (só um servidor: [""principal""] ou deixe sem a variável)"
+Write-Host "Acompanhe os deploys em GitHub > Actions."

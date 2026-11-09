@@ -117,6 +117,9 @@
     font-size: 19px;
 }
 
+/* Número inteiro (R$ 2.310.457) é mais largo que o abreviado: fonte menor no centro do medidor */
+.valores-inteiros .gauge-value-money { font-size: 15px; letter-spacing: -0.03em; }
+
 .gauge-status {
     margin-top: 6px;
     font-size: 10.5px;
@@ -272,6 +275,7 @@
 .modo-pdf .gauge-wrap { max-width: 120px; }
 .modo-pdf .gauge-value { font-size: 18px; }
 .modo-pdf .gauge-value-money { font-size: 14px; }
+.modo-pdf.valores-inteiros .gauge-value-money { font-size: 11px; }
 .modo-pdf .gauge-status { font-size: 9px; padding: 2px 7px; }
 .modo-pdf .setor-card-metrics { font-size: 10px; padding-top: 6px; }
 .modo-pdf .metrics-row { gap: 4px 8px; }

@@ -24,6 +24,44 @@
         no seletor ao lado do botão "Atualizar". A preferência fica salva neste navegador.
     </p>
 </div>
+{% if pode_ver_valores %}
+<div class="surface-card" style="padding:22px; max-width:560px; margin-top:18px;">
+    <h3 style="margin:0 0 6px;font-size:15px;">Exibição de valores</h3>
+    <p class="text-muted mt-0" style="font-size:13px;">
+        Como os valores grandes aparecem para você nos cards, no medidor e nas tabelas.
+        Vale só para o seu usuário, em qualquer computador.
+    </p>
+    <div class="formato-opcoes" role="radiogroup" aria-label="Formato dos valores">
+        {% for valor, rotulo in [("1", "1 casa"), ("2", "2 casas"), ("3", "3 casas"), ("inteiro", "Número inteiro")] %}
+        <label class="formato-opcao">
+            <input type="radio" name="formato-valores" value="{{ valor }}" {% if formato_valores == valor %}checked{% endif %}>
+            <span>{{ rotulo }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    <div class="formato-previa" id="formato-previa" aria-live="polite"></div>
+    <p class="text-muted" style="font-size:11.5px; margin:10px 0 0;">
+        Os rótulos dos eixos dos gráficos continuam abreviados para o gráfico não ficar espremido.
+    </p>
+</div>
+<style>
+.formato-opcoes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 14px; }
+.formato-opcao { position: relative; cursor: pointer; }
+.formato-opcao input { position: absolute; opacity: 0; pointer-events: none; }
+.formato-opcao span {
+    display: block; text-align: center; padding: 9px 6px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary);
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.formato-opcao input:checked + span { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.formato-opcao input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .formato-opcao:hover span { color: var(--text-primary); } }
+.formato-previa { display: grid; gap: 6px; margin-top: 14px; padding: 12px 14px; background: var(--bg-secondary); border-radius: var(--radius-sm); font-size: 13px; }
+.formato-previa div { display: flex; justify-content: space-between; gap: 12px; }
+.formato-previa strong { font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .formato-opcoes { grid-template-columns: repeat(2, 1fr); } }
+</style>
+{% endif %}
 {% if eh_superusuario %}
 <div class="surface-card" style="padding:22px; max-width:560px; margin-top:18px;">
     <h3 style="margin:0 0 6px;font-size:15px;">Backup dos dados</h3>
@@ -97,6 +135,35 @@
 
     document.getElementById("btn-testar").addEventListener("click", testar);
     testar();
+
+    var previa = document.getElementById("formato-previa");
+    if (previa) {
+        var EXEMPLOS = [["Faturamento de exemplo", 2310456.78], ["Meta de exemplo", 15678900.4], ["Setor menor", 845123.9]];
+        var mostrarPrevia = function () {
+            previa.innerHTML = EXEMPLOS.map(function (e) {
+                return '<div><span class="text-muted">' + e[0] + "</span><strong>" + Fmt.brlCompact(e[1]) + "</strong></div>";
+            }).join("");
+        };
+        mostrarPrevia();
+        document.querySelectorAll('input[name="formato-valores"]').forEach(function (radio) {
+            radio.addEventListener("change", async function () {
+                var anterior = window.DM_USUARIO.formatoValores;
+                window.DM_USUARIO.formatoValores = radio.value;
+                document.documentElement.classList.toggle("valores-inteiros", radio.value === "inteiro");
+                mostrarPrevia();
+                try {
+                    await apiFetch("/api/preferencias", { method: "PUT", body: JSON.stringify({ formato_valores: radio.value }) });
+                    Toast.success("Formato dos valores salvo.");
+                } catch (e) {
+                    window.DM_USUARIO.formatoValores = anterior;
+                    document.documentElement.classList.toggle("valores-inteiros", anterior === "inteiro");
+                    var voltar = document.querySelector('input[name="formato-valores"][value="' + anterior + '"]');
+                    if (voltar) voltar.checked = true;
+                    mostrarPrevia();
+                }
+            });
+        });
+    }
 
     var inputBackup = document.getElementById("input-backup");
     if (!inputBackup) return; // backup é só do superusuário

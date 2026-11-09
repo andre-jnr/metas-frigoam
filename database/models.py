@@ -38,6 +38,9 @@ MIGRACOES_SETORES = [
 # pode_ver_valores = 0: o usuário só vê porcentagens (sem R$ em nenhuma tela nem na API).
 MIGRACOES_USUARIOS = [
     "ALTER TABLE usuarios ADD COLUMN pode_ver_valores INTEGER NOT NULL DEFAULT 1",
+    # Como valores grandes aparecem para o usuário: "1", "2" ou "3" casas decimais no formato
+    # abreviado (R$ 2,31 mi / R$ 845,20 mil) ou "inteiro" (R$ 2.310.457).
+    "ALTER TABLE usuarios ADD COLUMN formato_valores TEXT NOT NULL DEFAULT '2'",
 ]
 
 MIGRACOES_METAS = [

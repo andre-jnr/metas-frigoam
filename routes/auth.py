@@ -46,6 +46,7 @@ def exigir_login():
         g.usuario = atual["usuario"]
         g.superusuario = atual["superusuario"]
         g.pode_ver_valores = atual["pode_ver_valores"]
+        g.formato_valores = atual["formato_valores"]
         g.sessao_expira_em = atual["expira_em"]
         if _no_caminho(request.path, CAMINHOS_SUPERUSUARIO) and not g.superusuario:
             return _negar("Apenas superusuários podem acessar esta área.")
@@ -55,6 +56,7 @@ def exigir_login():
     g.usuario = None
     g.superusuario = False
     g.pode_ver_valores = False
+    g.formato_valores = auth_service.FORMATO_PADRAO
     if dados:
         session.clear()
     if request.endpoint in ROTAS_PUBLICAS:
@@ -70,6 +72,7 @@ def usuario_no_template():
         "usuario_logado": getattr(g, "usuario", None),
         "eh_superusuario": getattr(g, "superusuario", False),
         "pode_ver_valores": getattr(g, "pode_ver_valores", False),
+        "formato_valores": getattr(g, "formato_valores", auth_service.FORMATO_PADRAO),
     }
 
 
@@ -125,3 +128,11 @@ def sessao():
         "usuario": g.usuario, "superusuario": g.superusuario, "pode_ver_valores": g.pode_ver_valores,
         "segundos_restantes": restante,
     })
+
+
+@auth_bp.put("/api/preferencias")
+def salvar_preferencias():
+    """Preferências de exibição do próprio usuário (cada um escolhe a sua)."""
+    body = request.get_json(force=True, silent=True) or {}
+    formato = auth_service.definir_formato_valores(g.usuario, body.get("formato_valores"))
+    return jsonify({"formato_valores": formato})

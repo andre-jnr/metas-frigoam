@@ -20,8 +20,10 @@
 window.DM_USUARIO = {
     usuario: {{ (usuario_logado or "") | tojson }},
     superusuario: {{ eh_superusuario | tojson }},
-    podeVerValores: {{ pode_ver_valores | tojson }}
+    podeVerValores: {{ pode_ver_valores | tojson }},
+    formatoValores: {{ formato_valores | tojson }}
 };
+{% if formato_valores == "inteiro" %}document.documentElement.classList.add('valores-inteiros');{% endif %}
 {% if not pode_ver_valores %}document.documentElement.classList.add('ocultar-valores', 'somente-percentual');{% endif %}
 </script>
 </head>

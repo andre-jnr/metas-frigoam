@@ -145,3 +145,19 @@ def test_validacoes_do_cadastro(temp_db):
 def test_superusuario_sempre_ve_valores(temp_db):
     novo = auth_service.criar_usuario("chefe", "123456", pode_ver_valores=False, superusuario=True)
     assert novo["pode_ver_valores"] is True
+
+
+def test_formato_dos_valores_e_por_usuario(admin, so_percentual):
+    assert 'formatoValores: "2"' in admin.get("/configuracoes").get_data(as_text=True)  # padrão: 2 casas
+    assert admin.put("/api/preferencias", json={"formato_valores": "inteiro"}).get_json() == {"formato_valores": "inteiro"}
+    pagina = admin.get("/configuracoes").get_data(as_text=True)
+    assert 'formatoValores: "inteiro"' in pagina
+    assert "valores-inteiros" in pagina
+    assert admin.put("/api/preferencias", json={"formato_valores": "5"}).status_code == 400
+    # a escolha de um usuário não muda a do outro
+    assert 'formatoValores: "2"' in so_percentual.get("/").get_data(as_text=True)
+
+
+def test_quem_so_ve_porcentagens_nao_ve_o_card_de_formato(admin, so_percentual):
+    assert 'id="formato-previa"' in admin.get("/configuracoes").get_data(as_text=True)
+    assert 'id="formato-previa"' not in so_percentual.get("/configuracoes").get_data(as_text=True)

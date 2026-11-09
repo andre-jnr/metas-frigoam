@@ -135,8 +135,25 @@ def usuario_da_sessao(dados: dict) -> dict | None:
         "usuario": row["usuario"],
         "superusuario": bool(row["superusuario"]),
         "pode_ver_valores": bool(row["superusuario"]) or bool(row["pode_ver_valores"]),
+        "formato_valores": row["formato_valores"] if row["formato_valores"] in FORMATOS_VALORES else FORMATO_PADRAO,
         "expira_em": dados["expira_em"],
     }
+
+
+FORMATOS_VALORES = ("1", "2", "3", "inteiro")
+FORMATO_PADRAO = "2"
+
+
+def definir_formato_valores(usuario: str, formato) -> str:
+    formato = str(formato or "").strip().lower()
+    if formato not in FORMATOS_VALORES:
+        raise ValidationError("Escolha 1, 2 ou 3 casas decimais, ou número inteiro.")
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE usuarios SET formato_valores = ?, updated_at = datetime('now') WHERE usuario = ?",
+            (formato, usuario),
+        )
+    return formato
 
 
 # ---------- cadastro de usuários (tela do superusuário) ----------

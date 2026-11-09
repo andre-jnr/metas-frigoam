@@ -68,7 +68,7 @@
         var acumulado = evolucao.map(function (d) { return Number(somentePercentual ? d.acumulado_pct : d.acumulado); });
         var metaAcumulada = evolucao.map(function (d) { return Number(somentePercentual ? d.meta_acumulada_pct : d.meta_acumulada); });
         var formatar = somentePercentual ? function (v) { return Fmt.pct(v); } : function (v) { return Fmt.brl(v); };
-        var formatarEixo = somentePercentual ? function (v) { return Fmt.pct(v, 0); } : function (v) { return Fmt.brlCompact(v); };
+        var formatarEixo = somentePercentual ? function (v) { return Fmt.pct(v, 0); } : function (v) { return Fmt.brlEixo(v); };
         canvas.parentElement.classList.toggle("money-value", !somentePercentual);
 
         if (chartInstance) chartInstance.destroy();

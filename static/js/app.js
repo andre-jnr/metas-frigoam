@@ -157,12 +157,28 @@ var Fmt = {
         var n = Number(valor || 0);
         return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     },
-    brlCompact: function (valor) {
+    // Formato escolhido pelo usuário em Configurações: "1", "2" ou "3" casas decimais no
+    // formato abreviado (R$ 2,31 mi), ou "inteiro" (R$ 2.310.457). Padrão: 2 casas.
+    formatoValores: function () {
+        var f = window.DM_USUARIO && window.DM_USUARIO.formatoValores;
+        return f === "1" || f === "2" || f === "3" || f === "inteiro" ? f : "2";
+    },
+    brlCompact: function (valor, formato) {
         var n = Number(valor || 0);
         var abs = Math.abs(n);
-        if (abs >= 1000000) return "R$ " + (n / 1000000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mi";
-        if (abs >= 1000) return "R$ " + (n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil";
+        formato = formato || Fmt.formatoValores();
+        if (formato === "inteiro") {
+            return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0, minimumFractionDigits: 0 });
+        }
+        var casas = { minimumFractionDigits: Number(formato), maximumFractionDigits: Number(formato) };
+        if (abs >= 1000000) return "R$ " + (n / 1000000).toLocaleString("pt-BR", casas) + " mi";
+        if (abs >= 1000) return "R$ " + (n / 1000).toLocaleString("pt-BR", casas) + " mil";
         return Fmt.brl(n);
+    },
+    // Rótulos de eixo de gráfico ficam sempre abreviados: número inteiro ali alarga o eixo e espreme o gráfico.
+    brlEixo: function (valor) {
+        var formato = Fmt.formatoValores();
+        return Fmt.brlCompact(valor, formato === "inteiro" ? "1" : formato);
     },
     pct: function (valor, casas) {
         var n = Number(valor || 0);

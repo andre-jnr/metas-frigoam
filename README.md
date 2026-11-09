@@ -105,6 +105,30 @@ Para remover: `servidor\desinstalar.bat` (não apaga dados).
 No servidor o sistema roda com `python app.py --producao` (Waitress, aceita acesso da rede).
 Nesse modo, se a porta 3002 já estiver em uso, ele **não sobe** e não troca de porta sozinho.
 
+### Atualização automática (GitHub Actions)
+
+Depois da primeira instalação, cada push na `main` publica no servidor sozinho
+(`.github/workflows/deploy-servidor.yml`). O workflow roda no próprio servidor, por um
+runner self-hosted que só faz conexões de saída para o GitHub (nenhuma porta aberta).
+
+Configuração (uma vez só):
+
+1. No GitHub: **Settings > Actions > Runners > New self-hosted runner** (Windows) e copie o
+   valor depois de `--token` (vale por 1 hora).
+2. No servidor: clique duas vezes em `servidor\instalar-runner.bat`, confirme o pedido de
+   administrador e cole o token. O runner vira um serviço do Windows (conta SYSTEM).
+3. No GitHub: **Settings > Secrets and variables > Actions > Variables**, crie
+   `PASTA_SISTEMA` com a pasta do sistema no servidor (ex.: `C:\sistemas\metas`).
+
+A cada push o workflow roda os testes, faz backup do banco em `dataackups` (guarda os 15
+mais recentes), copia o código novo e roda o `servidor\instalar.ps1`, que reinicia o sistema
+e confere se voltou a responder. Se os testes ou o backup falharem, nada é publicado.
+A cópia nunca mexe em `.env`, `data\`, `logs\` e `.venv\`, e não apaga arquivos do servidor.
+Acompanhe em **GitHub > Actions**; o botão **Run workflow** publica manualmente.
+
+Mantenha o repositório **privado**: runner self-hosted em repositório público deixaria
+código de terceiros rodar no servidor.
+
 ---
 
 ## 4. Estrutura do projeto

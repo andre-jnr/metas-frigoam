@@ -1,0 +1,91 @@
+# Publica no servidor da empresa a cada push na main.
+#
+# Roda num runner self-hosted instalado no próprio servidor (servidor\instalar-runner.bat):
+# o runner só faz conexões de saída para o GitHub, então nenhuma porta precisa ser aberta.
+#
+# Configuração única no GitHub (Settings > Secrets and variables > Actions > Variables):
+#   PASTA_SISTEMA = pasta onde o sistema está instalado no servidor (ex.: C:\sistemas\metas)
+#
+# A cópia nunca mexe em .env, data\, logs\ e .venv\ da pasta do sistema, e não apaga nada lá.
+name: Deploy no servidor
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # botão "Run workflow" para publicar manualmente
+
+# Um deploy de cada vez; um push no meio espera o anterior terminar.
+concurrency:
+  group: deploy-servidor-metas
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, servidor-metas]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    env:
+      PASTA_SISTEMA: ${{ vars.PASTA_SISTEMA }}
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Conferir a pasta do sistema
+        run: |
+          if (-not $env:PASTA_SISTEMA) {
+            throw "Defina a variável PASTA_SISTEMA em Settings > Secrets and variables > Actions > Variables."
+          }
+          if (-not (Test-Path (Join-Path $env:PASTA_SISTEMA ".env"))) {
+            throw "Não achei o .env em $env:PASTA_SISTEMA. Instale o sistema uma vez com servidor\instalar.bat antes do deploy automático."
+          }
+          Write-Host "Publicando em $env:PASTA_SISTEMA"
+
+      - name: Rodar os testes
+        run: |
+          # venv só dos testes, fora da pasta do sistema e reaproveitado entre deploys
+          $venv = Join-Path $env:RUNNER_TOOL_CACHE "metas-testes-venv"
+          $python = Join-Path $venv "Scripts\python.exe"
+          if (-not (Test-Path $python)) {
+            if (Get-Command py -ErrorAction SilentlyContinue) { py -3 -m venv $venv } else { python -m venv $venv }
+            if ($LASTEXITCODE -ne 0) { throw "Não consegui criar o ambiente dos testes." }
+          }
+          & $python -m pip install --disable-pip-version-check -q --only-binary :all: -r requirements.txt
+          if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar as dependências para os testes." }
+          & $python -m pytest -q
+          if ($LASTEXITCODE -ne 0) { throw "Testes falharam: nada foi publicado." }
+
+      - name: Backup do banco antes de atualizar
+        run: |
+          $banco = Join-Path $env:PASTA_SISTEMA "data\sistema.db"
+          if (-not (Test-Path $banco)) { Write-Host "Ainda não há banco para copiar."; exit 0 }
+          $pastaBackup = Join-Path $env:PASTA_SISTEMA "data\backups"
+          New-Item -ItemType Directory -Force $pastaBackup | Out-Null
+          $destino = Join-Path $pastaBackup ("sistema_" + (Get-Date -Format "yyyy-MM-dd_HHmmss") + ".db")
+          # cópia pelo próprio SQLite: segura mesmo com o sistema gravando no banco
+          $python = Join-Path $env:PASTA_SISTEMA ".venv\Scripts\python.exe"
+          & $python -c "import sqlite3,sys; o=sqlite3.connect(sys.argv[1]); d=sqlite3.connect(sys.argv[2]); o.backup(d); d.close(); o.close()" $banco $destino
+          if ($LASTEXITCODE -ne 0) { throw "Falha no backup do banco: nada foi publicado." }
+          Write-Host "Backup: $destino"
+          # mantém os 15 backups mais recentes
+          Get-ChildItem $pastaBackup -Filter "sistema_*.db" | Sort-Object Name -Descending |
+            Select-Object -Skip 15 | Remove-Item -Force
+
+      - name: Copiar o código novo
+        run: |
+          # /E copia subpastas sem apagar nada no destino; /XD e /XF protegem configuração e dados
+          robocopy . $env:PASTA_SISTEMA /E /NFL /NDL /NJH /NP `
+            /XD .git .github .venv data logs __pycache__ .pytest_cache node_modules `
+            /XF .env .node
+          # robocopy: 0 a 7 = sucesso; 8 ou mais = erro
+          if ($LASTEXITCODE -ge 8) { throw "robocopy falhou (código $LASTEXITCODE)." }
+          exit 0
+
+      - name: Atualizar dependências e reiniciar
+        run: |
+          # o mesmo instalador da primeira instalação: para o sistema, atualiza o .venv,
+          # recria a tarefa agendada, reinicia e testa se voltou a responder
+          & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $env:PASTA_SISTEMA "servidor\instalar.ps1")
+          if ($LASTEXITCODE -ne 0) { throw "A reinstalação falhou. Veja o log em $env:PASTA_SISTEMA\logs\servidor.log" }

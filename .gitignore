@@ -7,3 +7,4 @@ data/secret_key
 logs/*.log
 .pytest_cache/
 servidor/.node
+servidor/pacotes/

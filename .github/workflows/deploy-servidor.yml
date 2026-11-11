@@ -58,7 +58,7 @@ jobs:
             if (Get-Command py -ErrorAction SilentlyContinue) { py -3 -m venv $venv } else { python -m venv $venv }
             if ($LASTEXITCODE -ne 0) { throw "Não consegui criar o ambiente dos testes." }
           }
-          & $python -m pip install --disable-pip-version-check -q --only-binary :all: -r requirements.txt
+          & $python -m pip install --disable-pip-version-check -q --only-binary :all: --retries 10 --timeout 60 -r requirements.txt
           if ($LASTEXITCODE -ne 0) { throw "Falha ao instalar as dependências para os testes." }
           & $python -m pytest -q
           if ($LASTEXITCODE -ne 0) { throw "Testes falharam: nada foi publicado." }

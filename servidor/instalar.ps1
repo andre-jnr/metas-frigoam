@@ -111,9 +111,32 @@ if ($TIPO -eq "python") {
         if ($LASTEXITCODE -ne 0) { Falha "não consegui criar o .venv." }
     }
     # --only-binary: só instala pacotes prontos, nunca tenta compilar (o que exigiria o Visual C++)
-    & $pythonVenv -m pip install --disable-pip-version-check -q --only-binary :all: -r (Join-Path $raiz "requirements.txt")
-    if ($LASTEXITCODE -ne 0) {
-        Falha "falha ao instalar as dependências (requirements.txt). Se algum pacote não tem versão pronta para este Python, troque o pacote ou use outra versão do Python."
+    # --retries/--timeout + 3 tentativas: em rede instável o download cai no meio ("IncompleteRead")
+    $argsPip = @("-m", "pip", "install", "--disable-pip-version-check", "-q", "--only-binary", ":all:",
+                 "--retries", "10", "--timeout", "60", "-r", (Join-Path $raiz "requirements.txt"))
+    # Servidor sem internet boa: servidor\pacotes (gerada por baixar-pacotes.bat em outra máquina)
+    # traz os pacotes prontos, e nada é baixado aqui
+    $pacotesLocais = Join-Path $PSScriptRoot "pacotes"
+    if (Test-Path (Join-Path $pacotesLocais "*.whl")) {
+        $argsPip += @("--no-index", "--find-links", $pacotesLocais)
+        Ok "usando os pacotes da pasta servidor\pacotes (sem baixar da internet)"
+    }
+    $instalou = $false
+    for ($tentativa = 1; $tentativa -le 3 -and -not $instalou; $tentativa++) {
+        & $pythonVenv @argsPip
+        $instalou = ($LASTEXITCODE -eq 0)
+        if (-not $instalou -and $tentativa -lt 3) {
+            Aviso "a instalação das dependências falhou (tentativa $tentativa de 3). Tentando de novo em 10 segundos..."
+            Start-Sleep -Seconds 10
+        }
+    }
+    if (-not $instalou) {
+        Falha ("falha ao instalar as dependências (requirements.txt).`n" +
+            "  - Se o erro fala em 'Connection', 'IncompleteRead' ou 'timed out': a internet deste servidor caiu no meio do`n" +
+            "    download (rede instável, proxy ou antivírus). Rode servidor\baixar-pacotes.bat num computador com boa`n" +
+            "    internet, copie a pasta servidor\pacotes para cá e rode a instalação de novo.`n" +
+            "  - Se o erro fala em 'No matching distribution': algum pacote não tem versão pronta para este Python;`n" +
+            "    troque o pacote ou use outra versão do Python.")
     }
     Ok (& $pythonVenv --version)
 } else {

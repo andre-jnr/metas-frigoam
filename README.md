@@ -105,6 +105,12 @@ Para remover: `servidor\desinstalar.bat` (não apaga dados).
 No servidor o sistema roda com `python app.py --producao` (Waitress, aceita acesso da rede).
 Nesse modo, se a porta 3002 já estiver em uso, ele **não sobe** e não troca de porta sozinho.
 
+**Erro "IncompleteRead" / "Connection broken" ao instalar as dependências:** a internet do
+servidor caiu no meio do download. O instalador já tenta 3 vezes; se continuar falhando,
+rode `servidor\baixar-pacotes.bat` num computador com boa internet (informe a versão do
+Python do servidor, vista com `py -3 --version` lá), copie a pasta `servidor\pacotes` para o
+servidor e rode o `instalar.bat` de novo: ele instala a partir da pasta, sem baixar nada.
+
 ### Atualização automática (GitHub Actions)
 
 Depois da primeira instalação, cada push na `main` publica no servidor sozinho
